@@ -1,0 +1,15 @@
+[project]
+name = "dyberpet"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "apscheduler>=3.11.0",
+    "dashscope>=1.24.5",
+    "psutil>=7.0.0",
+    "pynput==1.7.6",
+    "pyside6-fluent-widgets==1.5.4",
+    "requests>=2.32.5",
+    "tendo>=0.3.0",
+]
