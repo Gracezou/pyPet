@@ -1,55 +1,16 @@
 import time
 import uuid
-from typing import Dict, List, Any, Optional
-from enum import Enum
+from typing import Dict, List, Any, Optional, Tuple
 from PySide6.QtCore import QObject, QTimer, Signal
-from .. import settings
-from .llm_client import LLMClient
 import DyberPet.settings as settings
 
-class EventPriority(Enum):
-    """事件优先级枚举"""
-    LOW = 1      # 低优先级：环境感知、时间触发等
-    MEDIUM = 2   # 中优先级：状态变化等
-    HIGH = 3     # 高优先级：用户直接交互等
-
-class EventType(Enum):
-    """事件类型枚举"""
-    USER_INTERACTION = "用户交互"    # 用户交互
-    STATUS_CHANGE    = "状态变化"    # 状态变化
-    TIME_TRIGGER     = "时间触发"    # 时间触发
-    RANDOM_EVENT     = "随机触发"    # 随机触发
-    ENVIRONMENT      = "环境感知"    # 环境感知
-
-# Error code to user/system message mapping and types
-ERROR_MESSAGES = {
-    "E001": "程序内部线程错误",
-    "E002": "大模型请求失败，状态码异常",
-    "E003": "HTTP请求异常",
-    "E004": "未安装dashscope库，无法使用通义千问API。请安装dashscope库。",
-    "E005": "未设置通义千问API密钥。请在设置中填写API密钥。",
-    "E006": "通义千问API请求失败",
-    "E007": "通义千问API异常",
-    "E008": "大模型回复格式错误，无法解析JSON",
-    "E009": "大模型回复处理异常",
-    "E010": "大模型功能未启用，请在设置中启用",
-    "E011": "重试发送失败",
-    "E999": "未知错误",
-}
-ERROR_TYPES = {
-    "E001": "internal",
-    "E002": "network",
-    "E003": "network",
-    "E004": "config",
-    "E005": "config",
-    "E006": "api",
-    "E007": "api",
-    "E008": "format",
-    "E009": "internal",
-    "E010": "config",
-    "E011": "internal",
-    "E999": "unknown",
-}
+from .types import EventPriority, EventType, StandardEvent, PetStatus, LLMResponse
+from .constants import REQUEST_MANAGER_CONFIG, EMOTION_ICON_MAP
+from .error_handler import ErrorHandler
+from .llm_client import LLMClient
+from .event_queue import EventQueue
+from .throttle_manager import ThrottleManager
+from .request_tracker import RequestTracker
 
 class LLMRequestManager(QObject):
     """大模型请求管理器"""
@@ -61,7 +22,7 @@ class LLMRequestManager(QObject):
     add_chatai_response = Signal(str, name='add_chatai_response')
     execute_actions = Signal(list, name='execute_actions') # 新增信号
 
-    def __init__(self, llm_client,parent=None):
+    def __init__(self, llm_client: LLMClient, parent: Optional[QObject] = None):
         super().__init__(parent)
         
         # 初始化LLM客户端
@@ -69,31 +30,21 @@ class LLMRequestManager(QObject):
         self.llm_client.structured_response_ready.connect(self.handle_structured_response)
         self.llm_client.error_occurred.connect(self.handle_llm_error)
 
-        # 优先级阈值，当累积优先级超过此值时触发请求
-        self.priority_threshold = 4
+        # 核心组件
+        self.error_handler = ErrorHandler(settings.language_code)
+        self.event_queue = EventQueue(REQUEST_MANAGER_CONFIG["priority_threshold"])
+        self.throttle_manager = ThrottleManager(REQUEST_MANAGER_CONFIG["high_priority_throttle_window"])
+        self.request_tracker = RequestTracker()
         
-        # 空闲检测计时器
-        self.idle_timer = QTimer(self)
-        self.idle_timer.timeout.connect(self.check_idle_status)
-        self.idle_timer.start(15 * 60 * 1000)  # 15分钟检查一次
+        # 配置参数
+        self.max_error_retries = settings.llm_config.get('max_retries', 3)
+        self.retry_delay = settings.llm_config.get('retry_delay', 1)
         
-        # 最后一次用户交互时间
-        self.last_user_interaction_time = time.time()
-        
-        # 节流系统 | 记录请求中的事件 & 队列中的事件
-        self.requesting_events = {} # request_id: {event_type, event_priority, context， retry_count}
-        self.pending_events = {} # (event_type, is_high_priority): {context_list, merge_deadline}
-        self.throttle_timer = {}  # 用于高优先级事件的节流倒计时
-        
-        self.high_priority_throttle_window = 2.0 # 高优先级事件节流窗口（秒）
-        self.max_error_retries = settings.llm_config.get('max_retries', 3)    # 最大重试次数（固定为3次）
-        self.retry_delay = settings.llm_config.get('retry_delay', 1)    # 重试延迟（秒）
-
-        # 重试定时器管理
-        self.retry_timers = {}  # request_id: QTimer
+        # 定时器
+        self.retry_timers: Dict[str, QTimer] = {}
         self.first_time_api_key_error = True
 
-    def _create_standard_event_data(self, event_type: EventType, priority: EventPriority, context: Dict[str, Any]) -> Dict[str, Any]:
+    def _create_standard_event_data(self, event_type: EventType, priority: EventPriority, context: Dict[str, Any]) -> StandardEvent:
         """
         创建标准格式的事件数据
 
@@ -138,22 +89,13 @@ class LLMRequestManager(QObject):
         return standard_event
 
     def _process_high_priority_event(self, event_type: EventType, standard_event_list: list):
-        """处理高优先级事件，返回请求ID"""
+        """处理高优先级事件"""
         request_id = str(uuid.uuid4())
-        print(f"处理高优先级事件 {request_id}: {event_type.value}")
-        # Build the request message using standard events
         message = self.build_request_message({event_type: standard_event_list})
-        # 发送请求
-        success = self.send_llm_request(message, request_id)
-        if success:
-            print(f"[LLM Request Manager] 发送高优先级请求成功: {request_id}")
-            # Record the event in requesting_events
-            self.requesting_events[request_id] = {
-                "event_type": event_type,
-                "priority": EventPriority.HIGH,
-                "message": message,
-                "retry_count": 0
-            }
+        
+        if self.send_llm_request(message, request_id):
+            self.request_tracker.add(request_id, event_type, EventPriority.HIGH, message)
+            print(f"[LLM Request Manager] 发送高优先级请求: {request_id}")
 
     def add_event_from_petwidget(self, data_dict: dict):
         """
@@ -210,408 +152,229 @@ class LLMRequestManager(QObject):
             skip_throttle: 是否跳过节流处理
         """
         if not settings.llm_config.get('enabled', False):
-            print("[LLM Request Manager] LLM未启用，不添加事件")
-            if skip_throttle: # from chatai, inform user llm not enabled
-                self.error_occurred.emit(ERROR_MESSAGES["E010"], None)
+            print("[LLM Request Manager] LLM未启用")
+            if skip_throttle:
+                msg = self.error_handler._messages.get("E010", "LLM功能未启用")
+                self.error_occurred.emit(msg, None)
             return
         if not settings.llm_config.get('api_key', ''):
-            print("[LLM Request Manager] 未设置API Key，不添加事件")
-            if self.first_time_api_key_error:
+            print("[LLM Request Manager] 未设置API Key")
+            if self.first_time_api_key_error or skip_throttle:
                 self.first_time_api_key_error = False
-                self.error_occurred.emit(ERROR_MESSAGES["E005"], None)
-            elif skip_throttle: # from chatai, inform user api key not set
-                self.error_occurred.emit(ERROR_MESSAGES["E005"], None)
+                msg = self.error_handler._messages.get("E005", "未设置API密钥")
+                self.error_occurred.emit(msg, None)
             return
 
         event_type = standard_event["event_type"]
         priority = standard_event["priority"]
-
-        # 更新用户交互时间
-        if event_type == EventType.USER_INTERACTION:
-            self.last_user_interaction_time = standard_event["timestamp"]
 
         # 高优先级事件直接处理
         if priority == EventPriority.HIGH:
             self.process_high_priority_event(event_type, standard_event, skip_throttle)
             return
 
-        # 其他事件加入累积器，存储完整standard_event
-        self.pending_events.setdefault((event_type, False), {'events':[], 'merge_deadline':None})['events'].append(standard_event)
-        self.check_priority_threshold(event_type)
+        # 其他事件加入队列
+        self.event_queue.add(standard_event, is_high_priority=False)
+        if self.event_queue.should_process(event_type):
+            self.process_accumulated_events(event_type)
 
     def process_high_priority_event(self, event_type: EventType, standard_event: Dict[str, Any], skip_throttle=False) -> None:
-        """处理高优先级事件，按事件类型合并节流"""
-        current_time = time.time()
-
-        if not skip_throttle:
-            # Check if there is an existing pending event of the same type
-            if self.pending_events.get((event_type, True), {'events': []})['events']:
-                merge_deadline = self.pending_events[(event_type, True)]["merge_deadline"]
-                if current_time <= merge_deadline:
-                    # 合并事件到现有事件中
-                    self.pending_events[(event_type, True)]["events"].append(standard_event)
-                    print(f"[节流] 合并同类型事件: {event_type.value}, 当前时间: {current_time}, 合并截止时间: {merge_deadline}")
-                    # 重启节流倒计时
-                    self._restart_throttle_timer(event_type, True)
-                    return
-                else:
-                    # 超过合并窗口，处理旧事件
-                    print(f"[节流] 处理过期事件: {event_type.value}")
-                    pending_events_list = self.pending_events[(event_type, True)]["events"]
-                    self.pending_events[(event_type, True)]["events"] = []  # 清空旧事件
-                    self._process_high_priority_event(event_type, pending_events_list)
-
-            # 如果该高优先级事件类型正在处理，创建待合并事件
-            if event_type in [i['event_type'] for i in self.requesting_events.values() if i['priority'] == EventPriority.HIGH]:
-                self.pending_events[(event_type, True)] = {
-                    "events": [standard_event],
-                    "merge_deadline": current_time + self.high_priority_throttle_window
-                }
-                print(f"[节流] 创建待合并事件: {event_type.value}, 当前时间: {current_time}, 合并截止时间: {self.pending_events[(event_type, True)]['merge_deadline']}")
-                # 设置节流倒计时
-                self._create_throttle_timer(event_type, True)
-                return
-            else:
-                # 没有待合并事件，直接处理当前事件
-                print(f"[节流] 直接处理事件: {event_type.value}")
-                self._process_high_priority_event(event_type, [standard_event])
-        else:
-            # 跳过节流，直接处理事件
-            print(f"[节流] 跳过节流，直接处理事件: {event_type.value}")
+        """处理高优先级事件"""
+        if skip_throttle:
             self._process_high_priority_event(event_type, [standard_event])
+            return
+        
+        # 检查是否需要节流
+        if self.throttle_manager.should_throttle(event_type, True):
+            self.event_queue.add(standard_event, is_high_priority=True)
+            self.throttle_manager.restart_timer(event_type, True)
+            print(f"[节流] 合并事件: {event_type.value}")
+            return
+        
+        # 检查是否有同类型高优先级请求正在处理
+        if self.request_tracker.is_high_priority_processing(event_type):
+            self.event_queue.add(standard_event, is_high_priority=True)
+            self.throttle_manager.set_deadline(event_type, True)
+            self.throttle_manager.start_timer(
+                event_type, True,
+                lambda: self._process_throttled_events(event_type),
+                parent=self
+            )
+            print(f"[节流] 创建待处理事件: {event_type.value}")
+            return
+        
+        # 直接处理
+        self._process_high_priority_event(event_type, [standard_event])
 
-    def _create_throttle_timer(self, event_type: EventType, is_high_priority: bool) -> None:
-        """创建新的节流定时器"""
-        timer_key = (event_type, is_high_priority)
-        self.throttle_timer[timer_key] = QTimer(self)
-        self.throttle_timer[timer_key].setSingleShot(True)
-        self.throttle_timer[timer_key].timeout.connect(
-            lambda et=event_type: self._process_throttle_events((et, is_high_priority))
-        )
-        self.throttle_timer[timer_key].start(self.high_priority_throttle_window * 1000)
-
-    def _restart_throttle_timer(self, event_type: EventType, is_high_priority: bool) -> None:
-        """重启现有的节流定时器"""
-        timer_key = (event_type, is_high_priority)
-        if timer_key in self.throttle_timer:
-            timer = self.throttle_timer[timer_key]
-            timer.stop()
-            timer.start(self.high_priority_throttle_window * 1000)
-            print(f"[节流] 重启定时器: {event_type.value}, 高优先级: {is_high_priority}")
-        else:
-            # 如果定时器不存在，创建新的定时器
-            print(f"[节流] 警告: 定时器不存在，创建新定时器: {event_type.value}, 高优先级: {is_high_priority}")
-            self._create_throttle_timer(event_type, is_high_priority)
-
-    def _stop_throttle_timer(self, event_type: EventType, is_high_priority: bool) -> None:
-        """安全停止并清理节流定时器"""
-        timer_key = (event_type, is_high_priority)
-        if timer_key in self.throttle_timer:
-            timer = self.throttle_timer[timer_key]
-            if timer.isActive():
-                timer.stop()
-            del self.throttle_timer[timer_key]
-            print(f"[节流] 停止定时器: {event_type.value}, 高优先级: {is_high_priority}")
-
-    def _process_throttle_events(self, event_key) -> None:
+    def _process_throttled_events(self, event_type: EventType) -> None:
         """处理节流事件"""
-        event_type, is_high_priority = event_key
-        print(f"[节流] 处理事件: {event_type.value}, 高优先级: {is_high_priority}")
+        events = self.event_queue.pop(event_type, is_high_priority=True)
+        if events:
+            print(f"[节流] 处理{len(events)}个事件: {event_type.value}")
+            self._process_high_priority_event(event_type, events)
+        self.throttle_manager.stop_timer(event_type, True)
 
-        # 检查是否有待处理的高优先级事件
-        if (event_type, is_high_priority) in self.pending_events:
-            pending_events_list = self.pending_events[(event_type, is_high_priority)]["events"]
-            if pending_events_list:
-                print(f"[节流] 发送高优先级请求: {event_type.value}, 事件数量: {len(pending_events_list)}")
-                self._process_high_priority_event(event_type, pending_events_list)
-                # 清空待合并事件
-                self.pending_events[(event_type, is_high_priority)]["events"] = []
-            else:
-                print(f"[节流] 没有待处理的事件: {event_type.value}")
-        
-        # 清理节流计时器
-        self._stop_throttle_timer(event_type, is_high_priority)
-
-    def handle_llm_error(self, error, request_id: Optional[str] = None):
-        """处理LLM错误，error为dict: {'code': ..., 'details': ...}"""
-        # 检查请求ID是否存在
-        if request_id is None:
-            print(f"[LLM Request Manager] 忽略未提供请求ID的错误")
-            return
-        if request_id not in self.requesting_events:
-            print(f"[LLM Request Manager] 忽略未知请求ID的错误: {request_id}")
+    def handle_llm_error(self, error: Dict[str, str], request_id: Optional[str] = None) -> None:
+        """处理LLM错误"""
+        if not request_id or not self.request_tracker.exists(request_id):
+            print(f"[LLM Request Manager] 忽略无效请求ID: {request_id}")
             return
         
-        # 重试请求
-        if request_id and self.requesting_events[request_id]["retry_count"] < self.max_error_retries:
-            self.requesting_events[request_id]["retry_count"] += 1
-            retry_count = self.requesting_events[request_id]["retry_count"]
-            print(f"正在重试请求: {request_id}, 重试次数: {retry_count}")
-            retry_timer = QTimer(self)
-            retry_timer.setSingleShot(True)
-            retry_timer.timeout.connect(lambda: self._retry_request(request_id))
-            self.retry_timers[request_id] = retry_timer
-            retry_timer.start(self.retry_delay * 1000)
-            return
+        if self.request_tracker.get_retry_count(request_id) < self.max_error_retries:
+            self._schedule_retry(request_id)
         else:
-            # 处理错误信息
-            if isinstance(error, dict) and 'code' in error:
-                code = error['code']
-                if code not in ERROR_MESSAGES:
-                    code = "E999"
-                details = error.get('details', '')
-                msg = ERROR_MESSAGES.get(code, ERROR_MESSAGES["E999"])
-                error_type = ERROR_TYPES.get(code, ERROR_TYPES["E999"])
-            else:
-                code = "E999"
-                details = str(error)
-                msg = ERROR_MESSAGES[code]
-                error_type = ERROR_TYPES[code]
-            print(f"[LLM Request Manager] LLM请求错误: {msg} (代码: {code}, 类型: {error_type}), 请求ID: {request_id}, 详情: {details}")
-            print(f"重试次数过多，停止所有队列并清理请求: {request_id}")
-            # 重试失败后停止所有队列
-            self._stop_all_queues()
-            # 清理失败的请求记录
-            self.delete_request(request_id)
-            self.error_occurred.emit(msg, details) #TODO: 多语言情况下会只返回中文
+            self._handle_final_error(error, request_id)
+    
+    def _schedule_retry(self, request_id: str) -> None:
+        """计划重试请求"""
+        retry_count = self.request_tracker.increment_retry(request_id)
+        print(f"正在重试请求: {request_id}, 重试次数: {retry_count}")
+        
+        retry_timer = QTimer(self)
+        retry_timer.setSingleShot(True)
+        retry_timer.timeout.connect(lambda: self._retry_request(request_id))
+        self.retry_timers[request_id] = retry_timer
+        retry_timer.start(self.retry_delay * 1000)
+    
+    def _handle_final_error(self, error: Dict[str, str], request_id: str) -> None:
+        """处理最终错误"""
+        msg, details, _ = self.error_handler.get_error_info(error)
+        self._stop_all_queues()
+        self.delete_request(request_id)
+        self.error_occurred.emit(msg, details)
 
 
     def _retry_request(self, request_id: str):
         """执行重试请求"""
-        if request_id not in self.requesting_events:
-            print(f"重试时请求 {request_id} 已不存在")
+        req_info = self.request_tracker.get(request_id)
+        if not req_info:
             return
 
         print(f"执行延迟重试: {request_id}")
-        # 重新发送请求
-        success = self.send_llm_request(self.requesting_events[request_id]["message"], request_id)
-        if not success:
-            print(f"重试发送失败: {request_id}")
-            # 如果发送失败，直接触发错误处理
+        if not self.send_llm_request(req_info["message"], request_id):
             self.handle_llm_error({"code": "E011", "details": "重试发送失败"}, request_id)
-
-        # 清理重试定时器
-        if request_id in self.retry_timers:
-            del self.retry_timers[request_id]
+        
+        self.retry_timers.pop(request_id, None)
 
     def _stop_all_queues(self):
         """停止所有队列和定时器"""
         print("[LLM Request Manager] 停止所有队列")
-
-        # 停止空闲检测定时器
-        if hasattr(self, 'idle_timer') and self.idle_timer.isActive():
-            self.idle_timer.stop()
-
-        # 停止所有重试定时器
+        
         for timer in self.retry_timers.values():
             if timer.isActive():
                 timer.stop()
         self.retry_timers.clear()
-
-        # 停止所有节流定时器
-        for timer in self.throttle_timer.values():
-            if timer.isActive():
-                timer.stop()
-        self.throttle_timer.clear()
-
-        # 清理所有待处理事件
-        self.pending_events.clear()
-
-        # 清理所有请求中的事件
-        self.requesting_events.clear()
-
-        print("[LLM Request Manager] 所有队列已停止")
+        
+        self.throttle_manager.stop_all()
+        self.event_queue.clear()
+        self.request_tracker.clear()
 
     def delete_request(self, request_id: Optional[str] = None):
         """清理请求记录"""
-        # 清理重试定时器
-        if request_id and request_id in self.retry_timers:
-            if self.retry_timers[request_id].isActive():
-                self.retry_timers[request_id].stop()
-            del self.retry_timers[request_id]
-
-        # 如果没有提供请求ID，直接清理所有活跃请求
-        if not request_id:
-            print("[LLM Request Manager] 清理所有活跃请求")
-            # 清理所有重试定时器
+        if request_id:
+            timer = self.retry_timers.pop(request_id, None)
+            if timer and timer.isActive():
+                timer.stop()
+            self.request_tracker.remove(request_id)
+        else:
             for timer in self.retry_timers.values():
                 if timer.isActive():
                     timer.stop()
             self.retry_timers.clear()
-            self.requesting_events.clear()
-
-        # 如果提供了请求ID，清理特定请求
-        elif request_id in self.requesting_events:
-            print(f"[LLM Request Manager] 清理请求: {request_id}")
-            del self.requesting_events[request_id]
+            self.request_tracker.clear()
 
 
     def handle_structured_response(self, response, request_id: Optional[str] = None):
         """处理LLM结构化响应"""
-        print(f"[LLM Request Manager] 处理回复: {request_id}")
-        
-        # 检查请求ID是否存在于当前活跃请求中
-        if request_id and request_id not in self.requesting_events:
-            print(f"[LLM Request Manager] 忽略未知请求ID的回复: {request_id}")
+        if request_id and not self.request_tracker.exists(request_id):
+            print(f"[LLM Request Manager] 忽略未知请求ID: {request_id}")
             return
         
-        # 处理响应信号
         self.handle_llm_response(response)
-        # 删除请求记录
         self.delete_request(request_id)
 
 
-    def handle_llm_response(self, data):
-        """
-        处理来自LLM的结构化响应
-        :param data: 响应数据字典
-        """
-        # print("[调试 handle_llm_response] 函数触发LLM响应",data)
+    def handle_llm_response(self, data: LLMResponse) -> None:
+        """处理LLM结构化响应"""
         if not isinstance(data, dict):
             return
-            
-        # 处理自适应时间间隔决策
-        if data.get('adaptive_timing_decision'):
-            new_interval = data.get('recommended_interval')
-            new_idle_threshold = data.get('recommended_idle_threshold')
-            
-            adaptive_interval = None
-            if new_interval and isinstance(new_interval, (int, float)) and 300 <= new_interval <= 3600:
-                adaptive_interval = new_interval
-                print(f"[自适应] 更新交互间隔为 {new_interval} 秒")
-            
-            idle_threshold = None
-            if new_idle_threshold and isinstance(new_idle_threshold, (int, float)) and 60 <= new_idle_threshold <= 1800:
-                idle_threshold = new_idle_threshold
-                print(f"[自适应] 更新空闲阈值为 {new_idle_threshold} 秒")
-            
-            self.update_software_monitor.emit(adaptive_interval, idle_threshold)
-
-        # 处理情绪分析结果
-        elif data.get('emotion_analysis_result'):
-            # ... 处理情绪分析结果的代码 ...
-            pass
         
-        # 处理任务分析结果
-        elif data.get('task_analysis_result'):
-            # ... 处理任务分析结果的代码 ...       
-            pass 
-
-        # 显示情感气泡 and hasattr(settings, 'bubble_manager') 用于test_llm文件进行测试
-        if data.get('emotion') and settings.bubble_on:
-            # 获取情感状态并映射到对应图标
-            # print("[调试 handle_llm_response] 显示情感气泡")
-            emotion = data.get('emotion', 'normal')
-            emotion_map = {
-                "高兴": "bb_fv_lvlup",
-                "难过": "bb_fv_drop",
-                "可爱": "bb_hp_low",
-                "天使": "bb_hp_zero",
-                "正常": "bb_pat_focus",
-                "困惑": "bb_pat_frequent",
-            }
-            emotion_icon = emotion_map.get(emotion, "bb_normal")
-            
-            # 处理文本内容，只显示第一条消息作为气泡
-            text_content = data.get('text', '')
-            if '<sep>' in text_content:
-                # 只显示第一条消息作为气泡
-                first_message = text_content.split('<sep>')[0].strip()
-                bubble_message = first_message
-            else:
-                bubble_message = text_content
-            
-            # 构造气泡数据
-            bubble_data = {
-                "bubble_type": "llm",
-                "icon": emotion_icon,
-                "message": bubble_message,
-                "countdown": None,
-                "start_audio": None,
-                "end_audio": None
-            }
-            
-            # 发送气泡
-            self.register_bubble.emit(bubble_data)
-
-        # ChatAI 聊天 - 发送原始消息，让ChatAI处理<sep>标记
+        self._handle_adaptive_timing(data)
+        self._handle_emotion_bubble(data)
+        self._handle_chat_response(data)
+        self._handle_actions(data)
+    
+    def _handle_adaptive_timing(self, data: LLMResponse) -> None:
+        """处理自适应时间间隔"""
+        if not data.get('adaptive_timing_decision'):
+            return
+        
+        new_interval = data.get('recommended_interval')
+        new_idle_threshold = data.get('recommended_idle_threshold')
+        
+        adaptive_interval = None
+        if new_interval and isinstance(new_interval, (int, float)) and 300 <= new_interval <= 3600:
+            adaptive_interval = new_interval
+            print(f"[自适应] 更新交互间隔: {new_interval}秒")
+        
+        idle_threshold = None
+        if new_idle_threshold and isinstance(new_idle_threshold, (int, float)) and 60 <= new_idle_threshold <= 1800:
+            idle_threshold = new_idle_threshold
+            print(f"[自适应] 更新空闲阈值: {new_idle_threshold}秒")
+        
+        self.update_software_monitor.emit(adaptive_interval, idle_threshold)
+    
+    def _handle_emotion_bubble(self, data: LLMResponse) -> None:
+        """处理情绪气泡"""
+        if not (data.get('emotion') and settings.bubble_on):
+            return
+        
+        emotion = data.get('emotion', '正常')
+        emotion_icon = EMOTION_ICON_MAP.get(emotion, "bb_normal")
+        
+        text_content = data.get('text', '')
+        bubble_message = text_content.split('<sep>')[0].strip() if '<sep>' in text_content else text_content
+        
+        bubble_data = {
+            "bubble_type": "llm",
+            "icon": emotion_icon,
+            "message": bubble_message,
+            "countdown": None,
+            "start_audio": None,
+            "end_audio": None
+        }
+        self.register_bubble.emit(bubble_data)
+    
+    def _handle_chat_response(self, data: LLMResponse) -> None:
+        """处理聊天响应"""
         if data.get('text'):
             self.add_chatai_response.emit(data['text'])
-
-        
-        # 执行动作
-        if 'action' in data:
-            actions = data['action']
-            if actions and isinstance(actions, list):
-                print(f"[LLM Request Manager] 执行动作: {actions}")
-                # 发送动作执行信号到PetWidget
-                self.execute_actions.emit(actions)
-            else:
-                print(f"[LLM Request Manager] 无动作或动作格式错误: {actions}")
-        
-        if 'open_web' in data:
-            pass
-            # self.open_web(data['open_web'])
-        
-        #添加代办事项任务
-        if 'add_task' in data:
-            return
-            # TODO: finish the signal connection to Dashboard
-            self.board.taskInterface.taskPanel.addTodoCard(data['add_task'])
+    
+    def _handle_actions(self, data: LLMResponse) -> None:
+        """处理动作执行"""
+        actions = data.get('action')
+        if actions and isinstance(actions, list):
+            print(f"[LLM Request Manager] 执行动作: {actions}")
+            self.execute_actions.emit(actions)
             
         
     
-    def check_priority_threshold(self, event_type: EventType) -> None:
-        """检查累积优先级或事件数量是否超过阈值"""
-        events = self.pending_events.get((event_type, False), {}).get('events', [])
-        if not events:
-            return
-        
-        # 计算累积优先级
-        accumulated_priority = sum(event["priority"].value for event in events)
-        print(f"[调试]事件: {events}，优先级: {accumulated_priority}")
-        # 检查是否超过阈值
-        if accumulated_priority >= self.priority_threshold:
-            # 处理累积的事件
-            self.process_accumulated_events(event_type)
+
 
     def process_accumulated_events(self, event_type: EventType) -> None:
-        """
-        处理指定类型的累积事件
-        Args:
-            event_type: 事件类型
-        """
-        events = self.pending_events.get((event_type, False), {}).get('events', [])
+        """处理累积事件"""
+        events = self.event_queue.pop(event_type, is_high_priority=False)
         if not events:
             return
-
-        # 如果优先级未超阈值，则不处理
-        accumulated_priority = sum(event["priority"].value for event in events)
-        if accumulated_priority < self.priority_threshold:
-            return
         
-        # Request ID
         request_id = str(uuid.uuid4())
-
-        # Build the request message
         request_message = self.build_request_message({event_type: events})
-        # Send the request to LLM
-        success = self.send_llm_request(request_message, request_id)
+        
+        if self.send_llm_request(request_message, request_id):
+            self.request_tracker.add(request_id, event_type, EventPriority.MEDIUM, request_message)
+            print(f"[LLM Request Manager] 发送请求: {request_id}")
 
-        if success:
-            print(f"[LLM Request Manager] 发送请求成功: {request_id}, 事件类型: {event_type.value}")
-            # Record the event in requesting_events
-            self.requesting_events[request_id] = {
-                "event_type": event_type,
-                "priority": EventPriority.MEDIUM,
-                "message": request_message,
-                "retry_count": 0
-            }
-
-        # Clear the event accumulator for this type
-        self.pending_events[(event_type, False)] = {'events': [], 'merge_deadline': None}
-
-    def get_pet_status(self) -> Dict[str, Any]:
+    def get_pet_status(self) -> PetStatus:
         return {
             'pet_name': settings.petname,
             'hp': f"{settings.pet_data.hp}/{settings.HP_TIERS[-1]*settings.HP_INTERVAL} ({settings.TIER_NAMES[settings.pet_data.hp_tier]})",
@@ -680,8 +443,7 @@ class LLMRequestManager(QObject):
                                 message += f"当前是{context.get('time_period', '')}\n"
                             elif event_type == EventType.ENVIRONMENT:
                                 message += f"{context.get('description', '')}\n"
-                            elif event_type == EventType.RANDOM_EVENT:
-                                message += f"随机事件: {context.get('description', '')}\n"
+
             message += "\n"
             
             # 构建状态消息
@@ -708,27 +470,6 @@ class LLMRequestManager(QObject):
             print(traceback.format_exc())
             return ""
 
-    def check_idle_status(self) -> None:
-        """
-        检查空闲状态并触发相应事件
-        """
-        try:
-            current_time = time.time()
-            # 检查是否超过空闲时间阈值（15分钟）
-            if current_time - self.last_user_interaction_time > 15 * 60:
-                # 触发空闲事件
-                self.add_event(
-                    self._create_standard_event_data(
-                        EventType.TIME_TRIGGER,
-                        EventPriority.LOW,
-                        {"time_period": "空闲时间", "duration": "15分钟"}
-                    )
-                )
-                # 重置计时器
-                self.last_user_interaction_time = current_time
-        except Exception as e:
-            print(f"检查空闲状态失败: {str(e)}")
-
     def send_llm_request(self, message: str, request_id: Optional[str] = None) -> None:
         """
         发送LLM请求
@@ -750,7 +491,6 @@ class LLMRequestManager(QObject):
     def reinitialize(self):
         """重新初始化LLM设定"""
         self._stop_all_queues()
-        self.last_user_interaction_time = time.time()
         self.first_time_api_key_error = True
         self.llm_client.reinitialize_for_pet_change()
         
@@ -762,12 +502,6 @@ class LLMRequestManager(QObject):
         try:
             # Stop all queues and timers
             self._stop_all_queues()
-            
-            # Stop idle timer if it exists
-            if hasattr(self, 'idle_timer') and self.idle_timer:
-                if self.idle_timer.isActive():
-                    self.idle_timer.stop()
-                self.idle_timer.deleteLater()
             
             # Clean up LLM client
             if hasattr(self, 'llm_client') and self.llm_client:

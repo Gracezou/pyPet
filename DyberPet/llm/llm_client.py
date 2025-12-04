@@ -1,19 +1,13 @@
 import json
-import requests
-import os
 from typing import Dict, Any, Optional, List, Union
-from PySide6.QtCore import QObject, Signal, QThread, Slot, QMutex, QWaitCondition
-import queue # Added for thread-safe queue
+from PySide6.QtCore import QObject, Signal, QThread, QMutex, QWaitCondition
+import queue
 
 import DyberPet.settings as settings
-
-# 添加对dashscope的导入
-try:
-    import dashscope
-    DASHSCOPE_AVAILABLE = True
-except ImportError:
-    DASHSCOPE_AVAILABLE = False
-    print("未安装dashscope库，无法使用通义千问API")
+from .api_factory import APIClientFactory
+from .api_client_base import BaseAPIClient
+from .conversation_manager import ConversationManager
+from .constants import LLM_CONFIG_DEFAULTS
 
 class LLMWorker(QThread):
     """处理LLM请求的持久工作线程"""
@@ -26,26 +20,20 @@ class LLMWorker(QThread):
         self._should_stop = False
         self._mutex = QMutex()
         self._wait_condition = QWaitCondition()
+        self.api_client: Optional[BaseAPIClient] = None
 
-        # These will be set per request processed by the run loop
-        self.current_request_data: Optional[Dict[str, Any]] = None
-        self.current_api_type: Optional[str] = None
-        self.current_api_url: Optional[str] = None
-        self.current_api_key: Optional[str] = None
-        self.current_debug_mode: bool = False
-
-    def enqueue_request(self, request_data: Dict[str, Any], api_type: str, api_url: Optional[str], api_key: Optional[str], debug_mode: bool, request_id: Optional[str]):
+    def set_api_client(self, api_client: BaseAPIClient) -> None:
+        """设置API客户端"""
+        self.api_client = api_client
+    
+    def enqueue_request(self, request_data: Dict[str, Any], request_id: Optional[str]):
         """将请求添加到队列中等待处理"""
         self._mutex.lock()
         self._request_queue.put({
             "request_data": request_data,
-            "api_type": api_type,
-            "api_url": api_url,
-            "api_key": api_key,
-            "debug_mode": debug_mode,
             "request_id": request_id
         })
-        self._wait_condition.wakeOne()  # Wake up the run() method if it's waiting
+        self._wait_condition.wakeOne()
         self._mutex.unlock()
 
     def run(self):
@@ -63,27 +51,26 @@ class LLMWorker(QThread):
                 continue  # Re-check conditions
 
             task = self._request_queue.get()
-            self._mutex.unlock()  # Unlock mutex before processing task
+            self._mutex.unlock()
 
             try:
-                self.current_request_data = task["request_data"]
-                self.current_api_type = task["api_type"]
-                self.current_api_url = task["api_url"]
-                self.current_api_key = task["api_key"]
-                self.current_debug_mode = task["debug_mode"]
-                self.request_id = task["request_id"]
+                request_data = task["request_data"]
+                request_id = task["request_id"]
                 
-                print(f"LLMWorker processing task with api_type: {self.current_api_type}")
-
-                if self.current_api_type == "dashscope":
-                    self._call_dashscope_api()
-                else:
-                    self._call_http_api()
+                if not self.api_client:
+                    raise Exception("API客户端未初始化")
+                
+                result = self.api_client.call_api(
+                    messages=request_data["messages"],
+                    model=request_data.get("model"),
+                    temperature=request_data.get("temperature"),
+                    max_tokens=request_data.get("max_tokens")
+                )
+                self.response_ready.emit(result, request_id)
             except Exception as e:
-                # Emit error if task processing itself fails catastrophically
-                if self.current_debug_mode:
-                    print(f"\n===== LLMWorker task processing error =====\n{str(e)}")
-                self.error_occurred.emit({"code": "E001", "details": str(e)}, self.request_id)
+                print(f"\n===== LLMWorker错误 =====\n{str(e)}")
+                error_code = "E006" if "API" in str(e) else "E003"
+                self.error_occurred.emit({"code": error_code, "details": str(e)}, task.get("request_id"))
         print("LLMWorker thread finished.")
 
     def stop(self):
@@ -102,102 +89,7 @@ class LLMWorker(QThread):
         
         print("LLMWorker.stop() completed")
 
-    def _call_http_api(self):
-        """调用HTTP API (本地或远程)"""
-        headers = {"Content-Type": "application/json"}
-        if self.current_api_type == "remote" and self.current_api_key:
-            headers["Authorization"] = f"Bearer {self.current_api_key}"
-        
-        if self.current_debug_mode:
-            print(f"\n===== LLM请求 ({self.current_api_type}) =====")
-            print(f"URL: {self.current_api_url}")
-            print(f"请求数据: {json.dumps(self.current_request_data, ensure_ascii=False, indent=2)}")
-        
-        try:
-            response = requests.post(
-                self.current_api_url, # type: ignore
-                headers=headers,
-                json=self.current_request_data,
-                timeout=30 
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                if self.current_debug_mode:
-                    print(f"\n===== LLM响应 =====")
-                    print(f"状态码: {response.status_code}")
-                    print(f"响应数据: {json.dumps(result, ensure_ascii=False, indent=2)}")
-                self.response_ready.emit(result, self.request_id)
-            else:
-                if self.current_debug_mode:
-                    print(f"\n===== LLM错误 =====\n请求失败，状态码: {response.status_code}, 响应: {response.text}")
-                self.error_occurred.emit({"code": "E002", "details": f"状态码: {response.status_code}, 响应: {response.text}"}, self.request_id)
-        except Exception as e:
-            if self.current_debug_mode:
-                print(f"\n===== LLM异常 =====\n{str(e)}")
-            self.error_occurred.emit({"code": "E003", "details": str(e)}, self.request_id)
-    
-    def _call_dashscope_api(self):
-        """调用通义千问API"""
-        if not DASHSCOPE_AVAILABLE:
-            if self.current_debug_mode:
-                print(f"\n===== Dashscope未安装 =====")
-            self.error_occurred.emit({"code": "E004", "details": None}, self.request_id)
-            return
 
-        model = self.current_request_data.get('model', 'qwen-plus') # type: ignore
-        if model == "local-model":
-            model = "qwen-max"
-        
-        if self.current_debug_mode:
-            print(f"\n===== 通义千问API请求 =====")
-            print(f"模型: {model}")
-            print(f"请求数据: {self.current_request_data.get('messages', [])}") # type: ignore
-            print(f"\n===== 通义千问API请求 结束 =====")
-        try:
-            if not self.current_api_key:
-                if self.current_debug_mode:
-                    print(f"\n===== Dashscope未设置API密钥 =====")
-                self.error_occurred.emit({"code": "E005", "details": None}, self.request_id)
-                return
-
-            response = dashscope.Generation.call(
-                api_key=self.current_api_key,
-                model=model,
-                messages=self.current_request_data.get('messages', []), # type: ignore
-                result_format='message',
-                temperature=self.current_request_data.get('temperature', 0.9), # type: ignore
-                max_tokens=self.current_request_data.get('max_tokens', 1500), # type: ignore
-            )
-            
-            if response.status_code == 200:
-                result = {
-                    "choices": [{
-                        "message": {
-                            "role": "assistant",
-                            "content": response.output.choices[0].message.content
-                        },
-                        "finish_reason": "stop"
-                    }],
-                    "model": model,
-                    "usage": {
-                        "prompt_tokens": response.usage.input_tokens,
-                        "completion_tokens": response.usage.output_tokens,
-                        "total_tokens": response.usage.input_tokens + response.usage.output_tokens
-                    }
-                }
-                if self.current_debug_mode:
-                    print(f"\n===== 通义千问API响应 =====")
-                    print(f"响应内容: {response}")
-                self.response_ready.emit(result, self.request_id)
-            else:
-                if self.current_debug_mode:
-                    print(f"\n===== 通义千问API错误 =====\n状态码: {response.status_code}, 错误: {response.message}")
-                self.error_occurred.emit({"code": "E006", "details": f"状态码: {response.status_code}, 错误: {response.message}"}, self.request_id)
-        except Exception as e:
-            if self.current_debug_mode:
-                print(f"\n===== 通义千问API异常 =====\n{str(e)}")
-            self.error_occurred.emit({"code": "E007", "details": str(e)}, self.request_id)
 
 class LLMClient(QObject):
     """
@@ -209,18 +101,18 @@ class LLMClient(QObject):
     
     def __init__(self, parent=None):
         super(LLMClient, self).__init__(parent)
-
+        
+        # 配置参数
         self.api_url = "http://localhost:8000/v1/chat/completions"
         self.remote_api_url = "https://api.example.com/v1/chat/completions"
         self.api_key = ""
         self.api_type = "Qwen"
-        self.timeout = 10 
-        self.max_retries = 3
-        self.retry_delay = 1
-        # self.is_interrupted = False
-        # self.waiting_for_action_complete = False
+        self.debug_mode = True
         
-        # Track active request IDs to handle responses from previous pets
+        # 对话管理器
+        self.conversation_manager = ConversationManager()
+        
+        # 活跃请求追踪
         self._active_requests = {}
 
         self.schema_prompt = """
@@ -275,14 +167,13 @@ class LLMClient(QObject):
 6. **格式要求**：确保回复是有效的JSON格式，软件监控参数调整时 (adaptive_timing_decision: true)，请保持 text 和 action 字段为空
 """
         self.structured_system_prompt = self.schema_prompt
-        self.use_structured_output = True
-        self.debug_mode = True 
-        self.conversation_history: List[Dict[str,str]] = []
 
         self._load_config()
+        self._init_api_client()
         self.reset_conversation()
         
         self._worker = LLMWorker()
+        self._worker.set_api_client(self.api_client)
         self._worker.response_ready.connect(self._handle_response)
         self._worker.error_occurred.connect(self._handle_error)
         self._worker.start()
@@ -290,28 +181,34 @@ class LLMClient(QObject):
     def _load_config(self):
         """从settings加载LLM配置"""
         try:
-            print("llm_client._load_config 从settings加载LLM配置", settings.llm_config)
-            if hasattr(settings, 'llm_config'):
-                config = settings.llm_config
-                self.api_type = config.get('api_type', self.api_type)
-                self.model_type = config.get('model_type', None)
-                self.timeout = config.get('timeout', self.timeout)
-                self.max_retries = config.get('max_retries', self.max_retries)
-                self.retry_delay = config.get('retry_delay', self.retry_delay)
-                self.debug_mode = config.get('debug_mode', self.debug_mode)
-                self.api_key = config.get('api_key', self.api_key)
-                self.api_url = config.get('api_url', self.api_url)
-                self.remote_api_url = config.get('remote_api_url', self.remote_api_url)
-                
+            config = getattr(settings, 'llm_config', LLM_CONFIG_DEFAULTS)
+            self.model_type = config.get('model_type', 'Qwen')
+            self.debug_mode = config.get('debug_mode', False)
+            self.api_key = config.get('api_key', '')
+            self.api_url = config.get('api_url', self.api_url)
+            self.remote_api_url = config.get('remote_api_url', self.remote_api_url)
+            
             if self.model_type == 'Qwen':
                 self.api_type = 'dashscope'
             else:
-                self.api_type = 'local' if self.api_type == 'local' else 'remote'
-                
-            # 更新系统提示词
+                self.api_type = config.get('api_type', 'local')
+            
             self._update_system_prompt()
         except Exception as e:
             print(f"加载LLM配置失败: {e}")
+    
+    def _init_api_client(self):
+        """初始化API客户端"""
+        try:
+            api_url = self.remote_api_url if self.api_type == 'remote' else self.api_url
+            self.api_client = APIClientFactory.create(
+                api_type=self.api_type,
+                api_key=self.api_key,
+                api_url=api_url,
+                debug_mode=self.debug_mode
+            )
+        except Exception as e:
+            print(f"初始化API客户端失败: {e}")
     
     def _get_available_actions(self) -> List[str]:
         """获取当前宠物可用的动作列表"""
@@ -369,56 +266,27 @@ class LLMClient(QObject):
     
     def reset_conversation(self):
         """重置对话历史"""
-        # 清理所有活跃请求
         self._cleanup_all_requests()
-        # 重置对话历史
-        self.conversation_history = [
-            {"role": "system", "content": self.structured_system_prompt}
-        ]
+        self.conversation_manager.clear()
+        self.conversation_manager.set_system_prompt(self.structured_system_prompt)
     
     def send_message(self, message: Union[str, Dict[str, Any]], request_id: str) -> None:
-        """发送消息到大模型并异步处理响应"""
-        print(f"llm_client.send_message 发送消息: {message}")
-        message_text: str
-        if isinstance(message, dict):
-            message_text = message.get('content', '')
-        else:
-            message_text = str(message)
+        """发送消息到大模型"""
+        message_text = message.get('content', '') if isinstance(message, dict) else str(message)
         
-        # Store the user message and track the request
-        self._active_requests[request_id] = {
-            "message": {"role": "user", "content": message_text}
-        }
-
+        self._active_requests[request_id] = {"message": {"role": "user", "content": message_text}}
+        
+        config = getattr(settings, 'llm_config', LLM_CONFIG_DEFAULTS)
         request_data = {
-            "model": "local-model", 
-            "messages": self.conversation_history + [self._active_requests[request_id]["message"]],
-            "temperature": settings.llm_config.get('temperature', 0.8) if hasattr(settings, 'llm_config') else 0.8,
-            "max_tokens": settings.llm_config.get('max_tokens', 600) if hasattr(settings, 'llm_config') else 600
+            "model": "local-model",
+            "messages": self.conversation_manager.get_messages() + [self._active_requests[request_id]["message"]],
+            "temperature": config.get('temperature', 0.8),
+            "max_tokens": config.get('max_tokens', 600)
         }
         
-        self._submit_request_to_worker(request_data, request_id)
+        self._worker.enqueue_request(request_data, request_id)
     
-    def _submit_request_to_worker(self, request_data: Dict[str, Any], request_id: str):
-        """将请求数据提交给持久工作线程"""
-        api_url_to_use: Optional[str] = self.api_url
-        api_key_to_use: Optional[str] = None
-        
-        if self.api_type == "remote":
-            api_url_to_use = self.remote_api_url
-            api_key_to_use = self.api_key
-        elif self.api_type == "dashscope":
-            api_url_to_use = None # Dashscope API client handles URL internally
-            api_key_to_use = self.api_key
-        
-        self._worker.enqueue_request(
-            request_data=request_data,
-            api_type=self.api_type,
-            api_url=api_url_to_use,
-            api_key=api_key_to_use,
-            debug_mode=self.debug_mode,
-            request_id=request_id
-        )
+
  
     def _handle_response(self, response: Dict[str, Any], request_id: str):
         """处理LLM响应"""
@@ -435,20 +303,20 @@ class LLMClient(QObject):
                 self._cleanup_request(request_id)
                 return
                 
-            # Process the structured response
             success = self._handle_structured_response(assistant_message, request_id)
             if success:
                 self._add_user_message_to_history(request_id)
-                self.conversation_history.append({"role": "assistant", "content": assistant_message})
+                self.conversation_manager.add_message("assistant", assistant_message)
             self._cleanup_request(request_id)
                 
         except Exception as e:
             self._handle_error(f"处理响应时出错: {str(e)}", request_id)
     
     def _add_user_message_to_history(self, request_id: str):
-        """将指定请求的用户消息添加到对话历史"""
+        """将用户消息添加到对话历史"""
         if request_id in self._active_requests:
-            self.conversation_history.append(self._active_requests[request_id]["message"])
+            msg = self._active_requests[request_id]["message"]
+            self.conversation_manager.add_message(msg["role"], msg["content"])
             del self._active_requests[request_id]
     
     def _is_request_active(self, request_id: str) -> bool:
@@ -587,11 +455,10 @@ class LLMClient(QObject):
             print("LLMClient.close() completed")
 
     def change_model(self):
-        self.model_type = settings.llm_config.get('model_type', None)
-        if self.model_type == 'Qwen':
-            self.api_type = 'dashscope'
-        else:
-            self.api_type = 'remote'
+        self.model_type = settings.llm_config.get('model_type', 'Qwen')
+        self.api_type = 'dashscope' if self.model_type == 'Qwen' else 'remote'
+        self._init_api_client()
+        self._worker.set_api_client(self.api_client)
         print(f"切换模型为{self.model_type}")
         self.reset_conversation()
 
@@ -600,30 +467,26 @@ class LLMClient(QObject):
         print(f"切换调试模式为{self.debug_mode}")
 
     def reinitialize_for_pet_change(self):
-        """切换桌宠时重新初始化LLM设定"""
+        """切换桌宠时重新初始化"""
         try:
             print(f"LLM模块重新初始化 - 当前桌宠: {settings.petname}")
-            # 清除所有活跃请求和待处理消息
             self._cleanup_all_requests()
-            # 重新加载配置，包括新桌宠的prompt
             self._load_config()
-            # 重置对话历史
+            self._init_api_client()
+            self._worker.set_api_client(self.api_client)
             self.reset_conversation()
             print("LLM模块重新初始化完成")
         except Exception as e:
             print(f"LLM模块重新初始化失败: {e}")
 
     def update_prompt_and_history(self):
-        """更新动作列表（当好感度等级变化或动作解锁时调用）"""
+        """更新动作列表"""
         try:
-            print(f"[LLM Client] 更新 prompt 和对话历史")
-            # 更新动作列表
+            print(f"[LLM Client] 更新 prompt")
             self._update_system_prompt()
-            # 更新对话历史中的系统消息
-            if self.conversation_history and self.conversation_history[0]["role"] == "system":
-                self.conversation_history[0]["content"] = self.structured_system_prompt
+            self.conversation_manager.set_system_prompt(self.structured_system_prompt)
         except Exception as e:
-            print(f"[LLM Client] 更新 prompt 和对话历史失败: {e}")
+            print(f"[LLM Client] 更新 prompt 失败: {e}")
 
     def switch_api_type(self, api_type: str):
         """切换API类型"""
@@ -631,8 +494,8 @@ class LLMClient(QObject):
             raise ValueError("不支持的API类型")
         
         self.api_type = api_type
-        if self.debug_mode:
-            print(f"\n===== 切换API类型 =====\n当前使用: {api_type}")
+        self._init_api_client()
+        self._worker.set_api_client(self.api_client)
         
         if hasattr(settings, 'llm_config'):
             settings.llm_config['api_type'] = api_type
@@ -642,14 +505,14 @@ class LLMClient(QObject):
     
     def update_api_key(self):
         self.api_key = settings.llm_config.get('api_key', '')
-        print(f"更新API密钥为{self.api_key}")
+        self._init_api_client()
+        self._worker.set_api_client(self.api_client)
+        print(f"更新API密钥")
 
     def _cleanup_all_requests(self):
         """清理所有活跃请求"""
-        if hasattr(self, '_active_requests'):
-            self._active_requests.clear()
+        self._active_requests.clear()
 
     def _cleanup_request(self, request_id: str):
-        """清理请求ID和相关的待处理消息"""
-        if hasattr(self, '_active_requests') and request_id in self._active_requests:
-            del self._active_requests[request_id]
+        """清理请求"""
+        self._active_requests.pop(request_id, None)

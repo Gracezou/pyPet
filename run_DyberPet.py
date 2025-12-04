@@ -6,7 +6,6 @@ import os
 from DyberPet.utils import read_json
 from DyberPet.DyberPet import PetWidget
 from DyberPet.Notification import DPNote
-from DyberPet.Accessory import DPAccessory
 
 from DyberPet.llm.llm_client import LLMClient
 from DyberPet.llm.llm_request_manager import LLMRequestManager
@@ -68,8 +67,7 @@ class DyberPetApp(QApplication):
         # Notification System
         self.note = DPNote()
 
-        # Accessory System
-        self.acc = DPAccessory()
+
 
         # System Panel
         self.conp = ControlMainWindow()
@@ -110,15 +108,9 @@ class DyberPetApp(QApplication):
         self.p.close_bubble.connect(self.note.close_bubble)
         self.p.hptier_changed_main_note.connect(self.note.hpchange_note)
         self.p.fvlvl_changed_main_note.connect(self.note.fvchange_note)
-        self.p.setup_acc.connect(self.acc.setup_accessory)
-        self.p.move_sig.connect(self.acc.send_main_movement)
         self.p.move_sig.connect(self.note.send_main_movement)
-        self.p.close_all_accs.connect(self.acc.closeAll)
 
         # System Widgets - others
-        self.conp.settingInterface.ontop_changed.connect(self.acc.ontop_changed)
-        self.conp.settingInterface.scale_changed.connect(self.acc.reset_size_sig)
-
         self.conp.settingInterface.ontop_changed.connect(self.p.ontop_update)
         self.conp.settingInterface.scale_changed.connect(self.p.reset_size)
         self.conp.settingInterface.lang_changed.connect(self.p.lang_changed)
@@ -138,27 +130,17 @@ class DyberPetApp(QApplication):
         self.board.statusInterface.changeStatus.connect(self.p._change_status)
         self.p.stopAllThread.connect(self.board.statusInterface.stopBuffThread)
 
-        self.acc.acc_withdrawed.connect(self.board.backpackInterface.acc_withdrawed)
         self.board.backpackInterface.use_item_inven.connect(self.p.use_item)
         self.board.backpackInterface.item_note.connect(self.p.register_notification)
         self.board.backpackInterface.item_drop.connect(self.p.item_drop_anim)
         self.p.fvlvl_changed_main_inve.connect(self.board.backpackInterface.fvchange)
-        self.p.fvlvl_changed_main_inve.connect(self.board.shopInterface.fvchange)
         self.p.addItem_toInven.connect(self.board.backpackInterface.add_items)
         self.p.compensate_rewards.connect(self.board.backpackInterface.compensate_rewards)
         self.p.refresh_bag.connect(self.board.backpackInterface.refresh_bag)
         self.p.autofeed.connect(self.board.backpackInterface.autofeed)
-        self.p.refresh_bag.connect(self.board.shopInterface.refresh_shop)
         self.p.addCoins.connect(self.board.backpackInterface.addCoins)
 
-        # Tasks and Timer
-        self.board.taskInterface.focusPanel.start_pomodoro.connect(self.p.run_tomato)
-        self.board.taskInterface.focusPanel.cancel_pomodoro.connect(self.p.cancel_tomato)
-        self.board.taskInterface.focusPanel.start_focus.connect(self.p.run_focus)
-        self.board.taskInterface.focusPanel.cancel_focus.connect(self.p.cancel_focus)
-        self.p.taskUI_Timer_update.connect(self.board.taskInterface.focusPanel.update_Timer)
-        self.p.taskUI_task_end.connect(self.board.taskInterface.focusPanel.taskFinished)
-        self.p.single_pomo_done.connect(self.board.taskInterface.focusPanel.single_pomo_done)
+
 
         # Animation Panel
         self.board.animInterface.animatPanel.updateList.connect(self.p.updateList)

@@ -10,8 +10,6 @@ from qfluentwidgets import FluentIcon as FIF
 
 from .statusUI import statusInterface
 from .inventoryUI import backpackInterface
-from .shopUI import shopInterface
-from .taskUI import taskInterface
 from .animationUI import animationInterface
 
 from sys import platform
@@ -41,8 +39,6 @@ class DashboardMainWindow(FluentWindow):
         # create sub interface
         self.statusInterface = statusInterface(sizeHintdb=(minWidth, minHeight), parent=self)
         self.backpackInterface = backpackInterface(sizeHintdb=(minWidth, minHeight), parent=self)
-        self.shopInterface = shopInterface(sizeHintdb=(minWidth, minHeight), parent=self)
-        self.taskInterface = taskInterface(sizeHintdb=(minWidth, minHeight), parent=self)
         self.animInterface = animationInterface(sizeHintdb=(minWidth, minHeight), parent=self)
 
         self.initNavigation()
@@ -58,12 +54,6 @@ class DashboardMainWindow(FluentWindow):
         self.addSubInterface(self.backpackInterface,
                              QIcon(os.path.join(basedir, "res/icons/Dashboard/backpack.svg")),
                              self.tr('Backpack'))
-        self.addSubInterface(self.shopInterface,
-                             QIcon(os.path.join(basedir, "res/icons/Dashboard/shop.svg")),
-                             self.tr('Shop'))
-        self.addSubInterface(self.taskInterface,
-                             QIcon(os.path.join(basedir, "res/icons/Dashboard/task.svg")),
-                             self.tr('Daily Tasks'))
         self.addSubInterface(self.animInterface,
                              QIcon(os.path.join(basedir, "res/icons/Dashboard/videoEdit.svg")),
                              self.tr('Animation'))
@@ -84,17 +74,6 @@ class DashboardMainWindow(FluentWindow):
         self.backpackInterface.addBuff.connect(self.statusInterface._addBuff)
         self.statusInterface.addCoins.connect(self.backpackInterface.addCoins)
         self.backpackInterface.rmBuff.connect(self.statusInterface._rmBuff)
-        self.backpackInterface.coinWidget.coinUpdated.connect(self.shopInterface.coinWidget._update2data)
-        self.backpackInterface.item_num_changed.connect(self.shopInterface._updateItemNum)
-        # buy&sell
-        self.shopInterface.buyItem.connect(self.backpackInterface.add_item)
-        self.shopInterface.sellItem.connect(self.backpackInterface.add_item)
-        self.shopInterface.updateCoin.connect(self.backpackInterface.addCoins)
-
-        # Task reward
-        self.taskInterface.focusPanel.addCoins.connect(self.backpackInterface.addCoins)
-        self.taskInterface.progressPanel.addCoins.connect(self.backpackInterface.addCoins)
-        self.taskInterface.taskPanel.addCoins.connect(self.backpackInterface.addCoins)
 
     def show_window(self):
         if self.isVisible():

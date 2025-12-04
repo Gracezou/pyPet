@@ -201,9 +201,7 @@ def init():
         pets = [default_pet] + pets
     save_settings()
 
-    # Focus Timer
-    global focus_timer_on
-    focus_timer_on = False
+
 
     # Load in pet data ================================================
     global pet_data 
