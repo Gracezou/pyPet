@@ -34,10 +34,10 @@ sys_nonDefault_prob = [1, 0.125, 0.25, 0.5] #Line 50
 ##############################
 
 class Animation_worker(QObject):
-    sig_setimg_anim = Signal(name='sig_setimg_anim')
-    sig_move_anim = Signal(float, float, name='sig_move_anim')
+    sig_setimg_anim = Signal()
+    sig_move_anim = Signal(float, float)
     sig_repaint_anim = Signal()
-    acc_regist = Signal(dict, name='acc_regist')
+    acc_regist = Signal(dict)
 
     def __init__(self, pet_conf, parent=None):
         """
@@ -344,15 +344,15 @@ class Animation_worker(QObject):
 
 class Interaction_worker(QObject):
 
-    sig_setimg_inter = Signal(name='sig_setimg_inter')
-    sig_move_inter = Signal(float, float, name='sig_move_inter')
+    sig_setimg_inter = Signal()
+    sig_move_inter = Signal(float, float)
     #sig_repaint_inter = Signal()
     sig_act_finished = Signal()
-    sig_interact_note = Signal(str, str, name='sig_interact_note')
+    sig_interact_note = Signal(str, str)
 
-    acc_regist = Signal(dict, name='acc_regist')
-    query_position = Signal(str, name='query_position')
-    stop_trackMouse = Signal(name='stop_trackMouse')
+    acc_regist = Signal(dict)
+    query_position = Signal(str)
+    stop_trackMouse = Signal()
 
     def __init__(self, pet_conf, parent=None):
         """
@@ -1031,12 +1031,12 @@ class Interaction_worker(QObject):
 #          计划任务
 ##############################
 class Scheduler_worker(QObject):
-    sig_settext_sche = Signal(str, str, name='sig_settext_sche')
-    sig_setact_sche = Signal(str, name='sig_setact_sche')
-    sig_setstat_sche = Signal(str, int, name='sig_setstat_sche')
-    sig_settime_sche = Signal(str, int, name='sig_settime_sche')
-    sig_addItem_sche = Signal(int, name='sig_addItem_sche')
-    sig_setup_bubble = Signal(dict, name='sig_setup_bubble')
+    sig_settext_sche = Signal(str, str)
+    sig_setact_sche = Signal(str)
+    sig_setstat_sche = Signal(str, int)
+    sig_settime_sche = Signal(str, int)
+    sig_addItem_sche = Signal(int)
+    sig_setup_bubble = Signal(dict)
 
 
     def __init__(self, parent=None):

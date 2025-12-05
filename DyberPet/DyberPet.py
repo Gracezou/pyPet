@@ -27,10 +27,11 @@ from DyberPet.mouse_utils import MouseMoveManager
 from DyberPet.custom_widgets import RoundBarBase, LevelBadge
 from DyberPet.bubbleManager import BubbleManager
 
-from DyberPet.llm.llm_client import LLMClient
-from DyberPet.llm.llm_request_manager import EventType, EventPriority
-from DyberPet.llm.software_monitor import SoftwareMonitor
-from DyberPet.llm.llm_request_manager import LLMRequestManager
+# 暂时禁用LLM模块
+# from DyberPet.llm.llm_client import LLMClient
+# from DyberPet.llm.llm_request_manager import EventType, EventPriority
+# from DyberPet.llm.software_monitor import SoftwareMonitor
+# from DyberPet.llm.llm_request_manager import LLMRequestManager
 
 # initialize settings
 import DyberPet.settings as settings
@@ -62,8 +63,8 @@ sys_pp_audio = settings.PP_AUDIO
 
 # Pet HP progress bar
 class DP_HpBar(QProgressBar):
-    hptier_changed = Signal(int, str, name='hptier_changed')
-    hp_updated = Signal(int, name='hp_updated')
+    hptier_changed = Signal(int, str)
+    hp_updated = Signal(int)
 
     def __init__(self, *args, **kwargs):
 
@@ -207,8 +208,8 @@ class DP_HpBar(QProgressBar):
 
 # Favorability Progress Bar
 class DP_FvBar(QProgressBar):
-    fvlvl_changed = Signal(int, name='fvlvl_changed')
-    fv_updated = Signal(int, int, name='fv_updated')
+    fvlvl_changed = Signal(int)
+    fv_updated = Signal(int, int)
 
     def __init__(self, *args, **kwargs):
 
@@ -355,47 +356,47 @@ class DP_FvBar(QProgressBar):
 
 # Pet Object
 class PetWidget(QWidget):
-    setup_notification = Signal(str, str, name='setup_notification')
-    setup_bubbleText = Signal(dict, int, int, name="setup_bubbleText")
-    close_bubble = Signal(str, name="close_bubble")
-    addItem_toInven = Signal(int, list, name='addItem_toInven')
-    fvlvl_changed_main_note = Signal(int, name='fvlvl_changed_main_note')
-    fvlvl_changed_main_inve = Signal(int, name='fvlvl_changed_main_inve')
-    hptier_changed_main_note = Signal(int, str, name='hptier_changed_main_note')
+    setup_notification = Signal(str, str)
+    setup_bubbleText = Signal(dict, int, int)
+    close_bubble = Signal(str)
+    addItem_toInven = Signal(int, list)
+    fvlvl_changed_main_note = Signal(int)
+    fvlvl_changed_main_inve = Signal(int)
+    hptier_changed_main_note = Signal(int, str)
 
-    setup_acc = Signal(dict, int, int, name='setup_acc')
-    change_note = Signal(name='change_note')
-    close_all_accs = Signal(name='close_all_accs')
+    setup_acc = Signal(dict, int, int)
+    change_note = Signal()
+    close_all_accs = Signal()
 
-    move_sig = Signal(int, int, name='move_sig')
+    move_sig = Signal(int, int)
     #acc_withdrawed = Signal(str, name='acc_withdrawed')
-    send_positions = Signal(list, list, name='send_positions')
+    send_positions = Signal(list, list)
 
-    lang_changed = Signal(name='lang_changed')
-    show_controlPanel = Signal(name='show_controlPanel')
+    lang_changed = Signal()
+    show_controlPanel = Signal()
 
-    show_dashboard = Signal(name='show_dashboard')
-    hp_updated = Signal(int, name='hp_updated')
-    fv_updated = Signal(int, int, name='fv_updated')
+    show_dashboard = Signal()
+    hp_updated = Signal(int)
+    fv_updated = Signal(int, int)
 
-    compensate_rewards = Signal(name="compensate_rewards")
-    refresh_bag = Signal(name="refresh_bag")
-    addCoins = Signal(int, name='addCoins')
-    autofeed = Signal(name='autofeed')
+    compensate_rewards = Signal()
+    refresh_bag = Signal()
+    addCoins = Signal(int)
+    autofeed = Signal()
 
-    stopAllThread = Signal(name='stopAllThread')
+    stopAllThread = Signal()
 
-    taskUI_Timer_update = Signal(name="taskUI_Timer_update")
-    taskUI_task_end = Signal(name="taskUI_task_end")
-    single_pomo_done = Signal(name="single_pomo_done")
+    taskUI_Timer_update = Signal()
+    taskUI_task_end = Signal()
+    single_pomo_done = Signal()
 
-    refresh_acts = Signal(name='refresh_acts')
+    refresh_acts = Signal()
 
     # Signal for [LLM-triggered action finished]
-    action_completed = Signal(name='action_completed')
-    add_llm_event = Signal(dict, name="add_llm_event")
-    open_chatai = Signal(name='open_chatai')
-    llm_reinitialize = Signal(name="llm_reinitialize")
+    action_completed = Signal()
+    add_llm_event = Signal(dict)
+    open_chatai = Signal()
+    llm_reinitialize = Signal()
 
     def __init__(self, parent=None, curr_pet_name=None, pets=(), screens=[]):
         """
@@ -460,16 +461,19 @@ class PetWidget(QWidget):
         self.compensate_timer = None
         self._setup_compensate()
 
-        self.software_monitor_thread = QThread()
-        self.software_monitor = SoftwareMonitor()
-        self.software_monitor.moveToThread(self.software_monitor_thread)
-        self.software_monitor_thread.started.connect(self.software_monitor.run)
-        
-        # 连接信号到处理函数
-        self.software_monitor.software_status_updated.connect(self.handle_software_status)
-        
-        # 启动线程
-        self.software_monitor_thread.start()
+        # 暂时禁用软件监控模块
+        # self.software_monitor_thread = QThread()
+        # self.software_monitor = SoftwareMonitor()
+        # self.software_monitor.moveToThread(self.software_monitor_thread)
+        # self.software_monitor_thread.started.connect(self.software_monitor.run)
+        # 
+        # # 连接信号到处理函数
+        # self.software_monitor.software_status_updated.connect(self.handle_software_status)
+        # 
+        # # 启动线程
+        # self.software_monitor_thread.start()
+        self.software_monitor = None
+        self.software_monitor_thread = None
 
 
         # 添加点击记录相关属性  
@@ -492,12 +496,8 @@ class PetWidget(QWidget):
         self.drag_end_pos = None
         self.pet_final_pos = None
 
-        # 任务相关信号
-        self.task_added = Signal(dict, name='task_added')
-        # self.task_removed = Signal(str, name='task_removed')
-        # self.task_updated = Signal(dict, name='task_updated')
-        # self.request_tasks = Signal(name='request_tasks')
-        # self.tasks_received = Signal(dict, name='tasks_received')
+        # 初始化拖拽信息
+        self.last_drag_info = {'description': '初始位置'}
 
     def update_software_monitor(self, new_interval, new_idle_threshold,new_adaptive_interval=5):
         self.check_interval = new_adaptive_interval
@@ -626,46 +626,10 @@ class PetWidget(QWidget):
 
     def execute_actions(self, actions):
         """
-        执行一系列动作，自动处理随机动画的暂停和恢复
-        
-        参数：
-            actions (list): 动作名称列表
+        执行一系列动作 - 暂时禁用
         """
-        print(f"[调试 execute_actions] 函数触发，动作: {actions}")
-        
-        # 验证动作列表
-        if not isinstance(actions, list) or len(actions) == 0:
-            print(f"[警告] 不支持的动作格式或空动作列表: {actions}")
-            return
-        
-        # 验证动作是否可用
-        available_actions = []
-        act_configs = settings.act_data.allAct_params.get(settings.petname, {})
-        for action in actions:
-            if (action in act_configs and 
-                act_configs[action].get('unlocked', False)):
-                available_actions.append(action)
-            else:
-                print(f"[警告] 动作 '{action}' 不可用或未解锁")
-        
-        # 限制动作数量最多3个
-        if len(available_actions) > 3:
-            available_actions = available_actions[:3]
-            print(f"[警告] 动作数量超过3个，截取前3个: {available_actions}")
-        
-        if not available_actions:
-            print(f"[警告] 没有可用的动作: {actions}")
-            return
-        
-        print(f"[调试 execute_actions] 执行可用动作: {available_actions}")
-        
-        # 暂停随机动画
-        self.workers['Animation'].pause()
-        
-        # 使用新的动作序列功能
-        self.workers['Interaction'].start_action_sequence(available_actions)
-        
-        print(f"[调试 execute_actions] 函数执行完毕")
+        # 暂时禁用LLM动作执行
+        pass
     
 
 
@@ -924,17 +888,12 @@ class PetWidget(QWidget):
                     self.workers['Animation'].resume()
             self.mouse_moving = False
 
-    def trigger_event(self, event_type: EventType, priority: EventPriority, event_data: dict):
+    def trigger_event(self, event_type, priority, event_data: dict):
         """
-        通用事件触发函数
-
-        Args:
-            event_type: 事件类型
-            priority: 事件优先级
-            event_data: 事件数据（纯业务数据，不包含timestamp和pet_status）
+        通用事件触发函数 - 暂时禁用
         """
-        # 直接发送到大模型请求管理器，让LLMRequestManager统一添加时间戳和宠物状态
-        self.add_llm_event.emit({"event_type":event_type, "priority":priority, "event_data":event_data})
+        # 暂时禁用LLM事件触发
+        pass
 
     def _process_pending_clicks(self):
         """批量处理收集到的点击数据，统一计算力度并上传"""
@@ -959,8 +918,8 @@ class PetWidget(QWidget):
             "intensity": click_intensity,
         }
 
-         # 使用通用事件触发函数
-        self.trigger_event(EventType.USER_INTERACTION, EventPriority.HIGH, event_data)
+         # 使用通用事件触发函数 - 暂时禁用
+        # self.trigger_event(EventType.USER_INTERACTION, EventPriority.HIGH, event_data)
 
         # 清空记录
         self.click_records = []
@@ -1070,10 +1029,10 @@ class PetWidget(QWidget):
         vbox.setContentsMargins(0,0,0,0)
         vbox.setSpacing(0)
 
-
         vbox.addStretch()
-        vbox.addLayout(h_box3)
-        vbox.addLayout(h_box4)
+        # Note: h_box3 and h_box4 were undefined, removing for now
+        # vbox.addLayout(h_box3)
+        # vbox.addLayout(h_box4)
 
         self.status_frame.setLayout(vbox)
         #self.status_frame.setStyleSheet("border : 2px solid blue")
@@ -1369,8 +1328,8 @@ class PetWidget(QWidget):
             Action(QIcon(os.path.join(basedir,'res/icons/SystemPanel.png')), self.tr('System'), triggered=self._show_controlPanel),
         ])
         
-        # Add chat option if LLM is enabled
-        self.StatMenu.addAction(Action(QIcon(os.path.join(basedir,'res/icons/Dialogue_icon.png')), self.tr('Chat AI'), triggered=self._open_chat_dialog))
+        # Add chat option if LLM is enabled - 暂时禁用
+        # self.StatMenu.addAction(Action(QIcon(os.path.join(basedir,'res/icons/Dialogue_icon.png')), self.tr('Chat AI'), triggered=self._open_chat_dialog))
         
         self.StatMenu.addSeparator()
         
@@ -1675,7 +1634,7 @@ class PetWidget(QWidget):
     def reset_size(self, setImg=True):
         #self.setFixedSize((max(self.pet_hp.width()+statbar_h,self.pet_conf.width)+self.margin_value)*max(1.0,settings.tunable_scale),
         #                  (self.margin_value+4*statbar_h+self.pet_conf.height)*max(1.0, settings.tunable_scale))
-        self.setFixedSize( int(max(self.pet_conf.width*settings.tunable_scale)),
+        self.setFixedSize( int(self.pet_conf.width*settings.tunable_scale),
                            int(2*statbar_h+self.pet_conf.height*settings.tunable_scale)
                          )
 
@@ -1789,7 +1748,8 @@ class PetWidget(QWidget):
             should_trigger = True
 
         if should_trigger:
-            self._process_pending_status_changes(EventPriority.MEDIUM)
+            # self._process_pending_status_changes(EventPriority.MEDIUM)
+            self._process_pending_status_changes()
 
         if send_note:
 
@@ -1815,30 +1775,32 @@ class PetWidget(QWidget):
             if settings.pet_data.hp <= settings.AUTOFEED_THRESHOLD*settings.HP_INTERVAL:
                 self.autofeed.emit()
 
-    def _process_pending_status_changes(self, event_priority = EventPriority.HIGH):
-        """处理累积的状态变化"""
+    def _process_pending_status_changes(self, event_priority=None):
+        """处理累积的状态变化 - 暂时禁用LLM功能"""
         if sum(abs(v) for v in self._pending_status_changes.values()) == 0:
             return
             
         print("处理累积的状态变化")
-        if event_priority == EventPriority.HIGH:
-            items_desc = f";\n 物品=>[{', '.join(map(str, self.recent_items))}]"
-            self.recent_items.clear() 
-        else:
-            items_desc = ""
-
-        # 构建事件数据
-        event_data = {
-            "status_type": "multiple",  # 表示可能包含多种状态变化
-            "event_source": "用户喂食" if event_priority == EventPriority.HIGH else "时间变化",
-            "description": f"{items_desc},饱食度变化: {self._pending_status_changes['hp']:+d}; 好感度变化: {self._pending_status_changes['fv']:+d}"
-        }
         
-        self.trigger_event(
-            EventType.STATUS_CHANGE, 
-            event_priority, 
-            event_data
-        )
+        # 暂时禁用LLM事件触发，只重置记录
+        # if event_priority == EventPriority.HIGH:
+        #     items_desc = f";\n 物品=>[{', '.join(map(str, self.recent_items))}]"
+        #     self.recent_items.clear() 
+        # else:
+        #     items_desc = ""
+        #
+        # # 构建事件数据
+        # event_data = {
+        #     "status_type": "multiple",  # 表示可能包含多种状态变化
+        #     "event_source": "用户喂食" if event_priority == EventPriority.HIGH else "时间变化",
+        #     "description": f"{items_desc},饱食度变化: {self._pending_status_changes['hp']:+d}; 好感度变化: {self._pending_status_changes['fv']:+d}"
+        # }
+        # 
+        # self.trigger_event(
+        #     EventType.STATUS_CHANGE, 
+        #     event_priority, 
+        #     event_data
+        # )
         
         # 重置记录
         self._pending_status_changes = {'hp': 0, 'fv': 0}
@@ -1958,13 +1920,13 @@ class PetWidget(QWidget):
             self.stop_thread('Interaction')
             self.stop_thread("Scheduler")
             
-            # Stop software monitor
-            print("[PetWidget] Stopping software monitor...")
-            if hasattr(self, 'software_monitor') and self.software_monitor:
-                self.software_monitor.stop()
-            if hasattr(self, 'software_monitor_thread') and self.software_monitor_thread:
-                self.software_monitor_thread.terminate()
-                self.software_monitor_thread.wait(3000)  # Wait up to 3 seconds
+            # Stop software monitor - 暂时禁用
+            # print("[PetWidget] Stopping software monitor...")
+            # if hasattr(self, 'software_monitor') and self.software_monitor:
+            #     self.software_monitor.stop()
+            # if hasattr(self, 'software_monitor_thread') and self.software_monitor_thread:
+            #     self.software_monitor_thread.terminate()
+            #     self.software_monitor_thread.wait(3000)  # Wait up to 3 seconds
             
             # Signal all other threads to stop (including LLM components)
             print("[PetWidget] Emitting stopAllThread signal...")
@@ -2221,7 +2183,8 @@ class PetWidget(QWidget):
                     "landing_speed": (settings.dragspeedx, settings.dragspeedy),
                     "fall_direction": "right" if settings.fall_right else "left"
                 }
-                self.trigger_event(EventType.USER_INTERACTION, EventPriority.HIGH, event_data)
+                # 暂时禁用LLM事件
+                # self.trigger_event(EventType.USER_INTERACTION, EventPriority.HIGH, event_data)
 
                 new_x, new_y = self.limit_in_screen(new_x, new_y)
             # 在空中

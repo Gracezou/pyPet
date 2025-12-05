@@ -37,33 +37,26 @@
 - Python 3.9+
 - Windows / macOS / Linux
 
-### 安装运行
+### 一键启动
 
 ```bash
-# 安装 uv (推荐)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
 # 克隆项目
 git clone <repository-url>
 cd AI桌面伴侣
 
-# 安装依赖并运行
-uv sync
-uv run python run_DyberPet.py
+# 直接运行 (推荐)
+python main.py
 ```
 
-### 传统安装
+### 使用uv (可选)
 
 ```bash
-# 创建虚拟环境
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
+# 安装uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 安装依赖
-pip install -r requirements.txt
-
-# 运行应用
-python run_DyberPet.py
+# 运行
+uv sync
+uv run python main.py
 ```
 
 ---

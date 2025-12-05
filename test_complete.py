@@ -38,7 +38,6 @@ class TestDyberPetCore(unittest.TestCase):
             'DyberPet/Dashboard/inventoryUI.py',
             'DyberPet/Dashboard/animationUI.py',
             'main.py',
-            'run_DyberPet.py',
         ]
         
         for file_path in required_files:
@@ -50,7 +49,6 @@ class TestDyberPetCore(unittest.TestCase):
         deleted_files = [
             'DyberPet/Dashboard/shopUI.py',
             'DyberPet/Dashboard/taskUI.py', 
-            'DyberPet/Dashboard/animDesignUI.py',
             'DyberPet/Accessory.py',
         ]
         

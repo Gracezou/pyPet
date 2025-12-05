@@ -62,8 +62,8 @@ basedir = settings.BASEDIR
 
 class DPNote(QWidget):
 
-    noteToLog = Signal(QPixmap, str, name="noteToLog")
-    send_main_movement = Signal(int, int, name="send_main_movement")
+    noteToLog = Signal(QPixmap, str)
+    send_main_movement = Signal(int, int)
 
     def __init__(self, parent=None):
         """
@@ -446,7 +446,7 @@ def extract_change_info(message):
 
 
 class DyberToaster(QFrame):
-    closed_note = Signal(str, str, name='closed_note')
+    closed_note = Signal(str, str)
 
     def __init__(self, note_index,
                  message='', #parent
@@ -675,8 +675,8 @@ class VerticalSeparator(QWidget):
 
 
 class BubbleText(QFrame):
-    closed_bubble = Signal(str, name='closed_bubble')
-    register_note = Signal(str, str, name="register_note")
+    closed_bubble = Signal(str)
+    register_note = Signal(str, str)
 
     def __init__(self, note_index,
                  pos_x, pos_y, 

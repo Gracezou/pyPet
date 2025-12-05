@@ -218,7 +218,7 @@ class SettingInterface(ScrollArea):
         self.LLMTypeCard = Dyber_ComboBoxSettingCard(
             model_types,
             model_types,
-            QIcon(os.path.join(basedir, 'res/icons/system/ai.svg')),
+            QIcon(os.path.join(basedir, 'res/icons/system/chat.svg')),
             self.tr('Model Type'),
             self.tr('Select the type of LLM to use'),
             parent=self.LLMGroup
@@ -230,7 +230,7 @@ class SettingInterface(ScrollArea):
         
         # 添加API Key设置
         self.LLMApiKeyCard = SwitchSettingCard(
-            QIcon(os.path.join(basedir, 'res/icons/system/key.svg')),
+            QIcon(os.path.join(basedir, 'res/icons/system/chat.svg')),
             self.tr("API Key"),
             self.tr("API key for remote LLM services"),
             parent=self.LLMGroup
@@ -249,7 +249,7 @@ class SettingInterface(ScrollArea):
         
         # 添加调试模式开关
         self.LLMDebugCard = SwitchSettingCard(
-            QIcon(os.path.join(basedir, 'res/icons/system/debug.svg')),
+            QIcon(os.path.join(basedir, 'res/icons/system/chat.svg')),
             self.tr("Debug Mode"),
             self.tr("Show detailed LLM request and response logs"),
             parent=self.LLMGroup

@@ -16,11 +16,11 @@ class LLMRequestManager(QObject):
     """大模型请求管理器"""
     
     # 信号定义
-    error_occurred = Signal(str, str, name='error_occurred')
-    update_software_monitor = Signal(float, float, name='update_software_monitor')
-    register_bubble = Signal(dict, name='register_bubble')
-    add_chatai_response = Signal(str, name='add_chatai_response')
-    execute_actions = Signal(list, name='execute_actions') # 新增信号
+    error_occurred = Signal(str, str)
+    update_software_monitor = Signal(float, float)
+    register_bubble = Signal(dict)
+    add_chatai_response = Signal(str)
+    execute_actions = Signal(list) # 新增信号
 
     def __init__(self, llm_client: LLMClient, parent: Optional[QObject] = None):
         super().__init__(parent)

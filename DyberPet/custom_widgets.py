@@ -75,7 +75,7 @@ class HorizontalSeparator(QWidget):
 
 
 class DPDialogue(QWidget):
-    closed_acc = Signal(str, name='closed_acc')
+    closed_acc = Signal(str)
 
     def __init__(self, acc_index,
                  message={},

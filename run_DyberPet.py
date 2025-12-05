@@ -7,9 +7,10 @@ from DyberPet.utils import read_json
 from DyberPet.DyberPet import PetWidget
 from DyberPet.Notification import DPNote
 
-from DyberPet.llm.llm_client import LLMClient
-from DyberPet.llm.llm_request_manager import LLMRequestManager
-from DyberPet.llm.chatai import ChatWindow
+# 暂时禁用LLM模块
+# from DyberPet.llm.llm_client import LLMClient
+# from DyberPet.llm.llm_request_manager import LLMRequestManager
+# from DyberPet.llm.chatai import ChatWindow
 
 from PySide6.QtWidgets import QApplication
 from PySide6 import QtCore
@@ -75,11 +76,14 @@ class DyberPetApp(QApplication):
         # Dashboard
         self.board = DashboardMainWindow()
 
-        # LLM Function Manager
-        self.llm_client = LLMClient()
-        self.llm_client.reset_conversation()
-        self.request_manager = LLMRequestManager(self.llm_client)
-        self.chatai = ChatWindow()
+        # LLM Function Manager - 暂时禁用
+        # self.llm_client = LLMClient()
+        # self.llm_client.reset_conversation()
+        # self.request_manager = LLMRequestManager(self.llm_client)
+        # self.chatai = ChatWindow()
+        self.llm_client = None
+        self.request_manager = None
+        self.chatai = None
         # self.p.setup_llm_client(self.llm_client)
         # self.request_manager = self.p.request_manager
         
@@ -153,27 +157,27 @@ class DyberPetApp(QApplication):
         # Midnight Trigger
         self.date_changed.connect(self.p._mightEventTrigger)
 
-        # LLM signals
+        # LLM signals - 暂时禁用
         # self.request_mana·ger.response_ready.connect(self.p.handle_llm_response)
         # self.p.action_completed.connect(self.request_manager.llm_client.handle_action_complete) # TODO: 逻辑有问题，非大模型执行的动作也会被返回给大模型
-        self.p.add_llm_event.connect(self.request_manager.add_event_from_petwidget)
-        self.p.stopAllThread.connect(self.request_manager.llm_client.close)
-        self.p.stopAllThread.connect(self.request_manager.cleanup)  # Add cleanup for request manager
-        self.p.stopAllThread.connect(self.p.software_monitor.cleanup)  # Add software monitor cleanup
-        self.request_manager.error_occurred.connect(self.chatai.handle_llm_error)
-        self.request_manager.update_software_monitor.connect(self.p.update_software_monitor)
-        self.request_manager.register_bubble.connect(self.p.register_bubbleText)
-        self.request_manager.add_chatai_response.connect(self.chatai.add_response)
-        self.p.open_chatai.connect(self.chatai.open_dialog)
-        self.chatai.message_sent.connect(self.request_manager.add_event_from_chatai)
-        self.conp.settingInterface.llm_change_model.connect(self.request_manager.llm_client.change_model)
-        self.conp.settingInterface.llm_change_debug.connect(self.request_manager.llm_client.change_debug_mode)
-        self.conp.settingInterface.llm_change_api_key.connect(self.request_manager.llm_client.update_api_key)
-        self.p.llm_reinitialize.connect(self.request_manager.reinitialize)
-        self.p.llm_reinitialize.connect(self.chatai.reinitialize)
-        self.request_manager.execute_actions.connect(self.p.execute_actions)
-        self.p.refresh_acts.connect(self.request_manager.llm_client.update_prompt_and_history)
-        self.board.statusInterface.usertagChanged.connect(self.request_manager.llm_client.update_prompt_and_history)
+        # self.p.add_llm_event.connect(self.request_manager.add_event_from_petwidget)
+        # self.p.stopAllThread.connect(self.request_manager.llm_client.close)
+        # self.p.stopAllThread.connect(self.request_manager.cleanup)  # Add cleanup for request manager
+        # self.p.stopAllThread.connect(self.p.software_monitor.stop)  # Add software monitor cleanup
+        # self.request_manager.error_occurred.connect(self.chatai.handle_llm_error)
+        # self.request_manager.update_software_monitor.connect(self.p.update_software_monitor)
+        # self.request_manager.register_bubble.connect(self.p.register_bubbleText)
+        # self.request_manager.add_chatai_response.connect(self.chatai.add_response)
+        # self.p.open_chatai.connect(self.chatai.open_dialog)
+        # self.chatai.message_sent.connect(self.request_manager.add_event_from_chatai)
+        # self.conp.settingInterface.llm_change_model.connect(self.request_manager.llm_client.change_model)
+        # self.conp.settingInterface.llm_change_debug.connect(self.request_manager.llm_client.change_debug_mode)
+        # self.conp.settingInterface.llm_change_api_key.connect(self.request_manager.llm_client.update_api_key)
+        # self.p.llm_reinitialize.connect(self.request_manager.reinitialize)
+        # self.p.llm_reinitialize.connect(self.chatai.reinitialize)
+        # self.request_manager.execute_actions.connect(self.p.execute_actions)
+        # self.p.refresh_acts.connect(self.request_manager.llm_client.update_prompt_and_history)
+        # self.board.statusInterface.usertagChanged.connect(self.request_manager.llm_client.update_prompt_and_history)
 
     
     def set_midnight_timer(self):
