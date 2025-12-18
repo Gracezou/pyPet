@@ -26,6 +26,7 @@ from DyberPet.modules import *
 from DyberPet.mouse_utils import MouseMoveManager
 from DyberPet.custom_widgets import RoundBarBase, LevelBadge
 from DyberPet.bubbleManager import BubbleManager
+from DyberPet.ui_colors import ThemeColors
 
 # 暂时禁用LLM模块
 # from DyberPet.llm.llm_client import LLMClient
@@ -82,7 +83,8 @@ class DP_HpBar(QProgressBar):
         self.hp_perct = 0
 
         # Custom colors and sizes
-        self.bar_color = QColor("#FAC486")  # Fill color
+        hp_colors = ThemeColors.hp_bar_colors()
+        self.bar_color = QColor(hp_colors[2])  # Default to medium tier
         self.border_color = QColor(0, 0, 0) # Border color
         self.border_width = 1               # Border width in pixels
     
@@ -199,7 +201,7 @@ class DP_HpBar(QProgressBar):
         return int(after_value - before_value)
 
     def _onTierChanged(self):
-        colors = ["#f8595f", "#f8595f", "#FAC486", "#abf1b7"]
+        colors = ThemeColors.hp_bar_colors()
         self.bar_color = QColor(colors[settings.pet_data.hp_tier])  # Fill color
         self.update()
         
@@ -216,7 +218,7 @@ class DP_FvBar(QProgressBar):
         super(DP_FvBar, self).__init__(*args, **kwargs)
 
         # Custom colors and sizes
-        self.bar_color = QColor("#F4665C")  # Fill color
+        self.bar_color = QColor(ThemeColors.fv_bar_color())  # Fill color
         self.border_color = QColor(0, 0, 0) # Border color
         self.border_width = 1               # Border width in pixels
 
@@ -400,10 +402,10 @@ class PetWidget(QWidget):
 
     def __init__(self, parent=None, curr_pet_name=None, pets=(), screens=[]):
         """
-        宠物组件
+        伴侣组件
         :param parent: 父窗口
-        :param curr_pet_name: 当前宠物名称
-        :param pets: 全部宠物列表
+        :param curr_pet_name: 当前伴侣名称
+        :param pets: 全部伴侣列表
         """
         super(PetWidget, self).__init__(parent) #, flags=Qt.WindowFlags())
         self.pets = settings.pets
@@ -486,7 +488,7 @@ class PetWidget(QWidget):
         self.click_records = []  # 新增：用于批量收集点击数据
         self._click_intensity_timer = None  # 新增：点击批处理定时器
 
-        #宠物状态变化
+        #伴侣状态变化
         self._last_status_change_time = time.time()
         self._pending_status_changes = {'hp': 0, 'fv': 0}
         self.recent_items = []  # 记录最近使用的物品
@@ -929,7 +931,7 @@ class PetWidget(QWidget):
         获取宠物的完整状态信息，包括位置、饱食度、好感度等
         
         Returns:
-            dict: 包含宠物状态的字典
+            dict: 包含伴侣状态的字典
         """
 
 
@@ -1100,7 +1102,7 @@ class PetWidget(QWidget):
     '''
 
 
-    def _set_menu(self, pets=()):
+    def _set_menu(self):
         """
         Option Menu
         """
@@ -1124,24 +1126,6 @@ class PetWidget(QWidget):
             self.act_menu.addActions(self.select_acts)
 
         #menu.addMenu(self.act_menu)
-
-
-        # Launch pet/partner
-        self.companion_menu = RoundMenu(self.tr("Call Partner"))
-        self.companion_menu.setIcon(QIcon(os.path.join(basedir,'res/icons/partner.svg')))
-
-        add_acts = [_build_act(name, self.companion_menu, self._add_pet) for name in pets]
-        self.companion_menu.addActions(add_acts)
-
-        #menu.addMenu(self.companion_menu)
-        #menu.addSeparator()
-
-        # Change Character
-        self.change_menu = RoundMenu(self.tr("Change Character"))
-        self.change_menu.setIcon(QIcon(os.path.join(basedir,'res/icons/system/character.svg')))
-        change_acts = [_build_act(name, self.change_menu, self._change_pet) for name in pets]
-        self.change_menu.addActions(change_acts)
-        #menu.addMenu(self.change_menu)
 
         # Drop on/off
         '''
@@ -1198,7 +1182,7 @@ class PetWidget(QWidget):
         self.statusTitle = QWidget()
         hboxTitle = QHBoxLayout(self.statusTitle)
         hboxTitle.setContentsMargins(0,0,0,0)
-        self.nameLabel = CaptionLabel(self.curr_pet_name, self)
+        self.nameLabel = CaptionLabel(settings.get_companion_display_name(self.curr_pet_name), self)
         setFont(self.nameLabel, 14, QFont.DemiBold)
         #self.nameLabel.setFixedWidth(75)
 
@@ -1335,8 +1319,6 @@ class PetWidget(QWidget):
         
 
         self.StatMenu.addMenu(self.act_menu)
-        self.StatMenu.addMenu(self.companion_menu)
-        self.StatMenu.addMenu(self.change_menu)
         self.StatMenu.addSeparator()
         
         self.StatMenu.addActions([
@@ -1357,17 +1339,19 @@ class PetWidget(QWidget):
         # 光标位置弹出菜单
         self.StatMenu.popup(QCursor.pos()-QPoint(0, self.StatMenu.height()-20))
 
-    def _add_pet(self, pet_name: str):
-        pet_acc = {'name':'pet', 'pet_name':pet_name}
-        #self.setup_acc.emit(pet_acc, int(self.current_screen.topLeft().x() + random.uniform(0.4,0.7)*self.screen_width), self.pos().y())
-        # To accomodate any subpet that always follows main, change the position to top middle pos of pet
-        self.setup_acc.emit(pet_acc, int( self.pos().x() + self.width()/2 ), self.pos().y())
-
     def open_web(self, web_address):
         try:
             webbrowser.open(web_address)
         except:
             return
+
+    def update_display_name(self):
+        """更新显示名称"""
+        display_name = settings.get_companion_display_name(self.curr_pet_name)
+        self.nameLabel.setText(display_name)
+        if self.tray:
+            self.tray.setToolTip(display_name)
+
     '''
     def freeze_pet(self):
         """stop all thread, function for save import"""
@@ -1408,7 +1392,7 @@ class PetWidget(QWidget):
         # Update BackPack
         #self._init_Inventory()
         self.refresh_bag.emit()
-        self._set_menu(self.pets)
+        self._set_menu()
         self._set_Statusmenu()
         self._set_tray()
 
@@ -1423,60 +1407,10 @@ class PetWidget(QWidget):
         self._setup_compensate()
     
 
-    def _change_pet(self, pet_name: str) -> None:
-        """
-        改变宠物
-        :param pet_name: 宠物名称
-        :return:
-        """
-        if self.curr_pet_name == pet_name:
-            return
-        
-        # close all accessory widgets (subpet, accessory animation, etc.)
-        self.close_all_accs.emit()
-
-        # stop animation thread and start again
-        self.stop_thread('Animation')
-        self.stop_thread('Interaction')
-
-        # reload pet data
-        settings.pet_data._change_pet(pet_name)
-
-        # reload new pet
-        self.init_conf(pet_name)
-
-        # Change status
-        self.pet_hp.init_HP(settings.pet_data.hp, sys_hp_interval) #2)
-        self.pet_fv.init_FV(settings.pet_data.fv, settings.pet_data.fv_lvl)
-
-        # Change status related behavior
-        #self.workers['Animation'].hpchange(settings.pet_data.hp_tier, None)
-        #self.workers['Animation'].fvchange(settings.pet_data.fv_lvl)
-
-        # Update Backpack
-        #self._init_Inventory()
-        self.refresh_bag.emit()
-        self.refresh_acts.emit()
-
-        self.change_note.emit()
-        self.repaint()
-        self._setup_ui()
-
-        self.runAnimation()
-        self.runInteraction()
-        self.llm_reinitialize.emit()
-
-        self.workers['Scheduler'].send_greeting()
-        # Compensate items if any
-        self._setup_compensate()
-        # Due to Qt internal behavior, sometimes has to manually correct the position back
-        pos_x, pos_y = self.pos().x(), self.pos().y()
-        QTimer.singleShot(10, lambda: self.move(pos_x, pos_y))
-
     def init_conf(self, pet_name: str) -> None:
         """
-        初始化宠物窗口配置
-        :param pet_name: 宠物名称
+        初始化伴侣窗口配置
+        :param pet_name: 伴侣名称
         :return:
         """
         self.curr_pet_name = pet_name
@@ -1504,7 +1438,7 @@ class PetWidget(QWidget):
         self.bubble_manager = BubbleManager()
         self.bubble_manager.register_bubble.connect(self.register_bubbleText)
 
-        self._set_menu(self.pets)
+        self._set_menu()
         self._set_Statusmenu()
         self._set_tray()
 
@@ -2301,8 +2235,8 @@ class PetWidget(QWidget):
 
 def _load_all_pic(pet_name: str) -> dict:
     """
-    加载宠物所有动作图片
-    :param pet_name: 宠物名称
+    加载伴侣所有动作图片
+    :param pet_name: 伴侣名称
     :return: {动作编码: 动作图片}
     """
     img_dir = os.path.join(basedir, 'res/role/{}/action/'.format(pet_name))

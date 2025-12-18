@@ -108,7 +108,6 @@ class DyberPetApp(QApplication):
         self.p.setup_notification.connect(self.note.setup_notification)
         self.p.setup_bubbleText.connect(self.note.setup_bubbleText)
         self.p.change_note.connect(self.note.change_pet)
-        self.p.change_note.connect(self.conp.charCardInterface._finishStateTooltip)
         self.p.close_bubble.connect(self.note.close_bubble)
         self.p.hptier_changed_main_note.connect(self.note.hpchange_note)
         self.p.fvlvl_changed_main_note.connect(self.note.fvchange_note)
@@ -120,10 +119,12 @@ class DyberPetApp(QApplication):
         self.conp.settingInterface.lang_changed.connect(self.p.lang_changed)
         self.p.change_note.connect(self.conp.settingInterface._update_scale)
 
-        self.conp.charCardInterface.change_pet.connect(self.p._change_pet)
-        self.p.show_controlPanel.connect(self.conp.show_window)
+        # Custom name signals
+        self.conp.settingInterface.custom_name_changed.connect(self.p.update_display_name)
+        self.conp.settingInterface.custom_name_changed.connect(self.board.statusInterface.StatusCard.update_pet_name)
+        self.p.change_note.connect(self.conp.settingInterface._update_custom_name)
 
-        self.conp.gamesaveInterface.refresh_pet.connect(self.p.refresh_pet)
+        self.p.show_controlPanel.connect(self.conp.show_window)
 
         # Dashboard - others
         self.p.show_dashboard.connect(self.board.show_window)

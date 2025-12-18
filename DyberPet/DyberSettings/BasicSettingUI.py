@@ -43,6 +43,7 @@ class SettingInterface(ScrollArea):
     llm_change_model = Signal(name='llm_change_model')
     llm_change_debug = Signal(name='llm_change_debug')
     llm_change_api_key = Signal(name='llm_change_api_key')
+    custom_name_changed = Signal(name='custom_name_changed')
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -194,6 +195,31 @@ class SettingInterface(ScrollArea):
         )
         self.languageCard.comboBox.currentTextChanged.connect(self._LanguageChanged)
 
+        # Companion Nickname
+        self.CustomNameCard = SwitchSettingCard(
+            QIcon(os.path.join(basedir, 'res/icons/system/character.svg')),
+            self.tr("伴侣昵称"),
+            self.tr("为您的伴侣设置一个亲切的昵称"),
+            parent=self.PersonalGroup
+        )
+        # Remove the switch button
+        self.CustomNameCard.hBoxLayout.removeWidget(self.CustomNameCard.switchButton)
+        self.CustomNameCard.switchButton.deleteLater()
+
+        # Add LineEdit for custom name input
+        self.CustomNameEdit = LineEdit(self.CustomNameCard)
+        current_custom_name = settings.companion_nicknames.get(settings.petname, '')
+        self.CustomNameEdit.setText(current_custom_name)
+        self.CustomNameEdit.setClearButtonEnabled(True)
+        self.CustomNameEdit.setPlaceholderText(self.tr("输入昵称（留空则使用标准名）"))
+        self.CustomNameEdit.setFixedWidth(200)
+        self.CustomNameCard.hBoxLayout.addStretch(1)
+        self.CustomNameCard.hBoxLayout.addWidget(self.CustomNameEdit)
+        self.CustomNameCard.hBoxLayout.setContentsMargins(16, 0, 15, 0)
+
+        # Connect signal
+        self.CustomNameEdit.editingFinished.connect(self._CustomNameChanged)
+
         self.themeColorCard = CustomColorSettingCard(
             FIF.PALETTE,
             self.tr('Theme color'),
@@ -292,7 +318,7 @@ class SettingInterface(ScrollArea):
     def __initWidget(self):
         #self.resize(1000, 800)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.setViewportMargins(0, 75, 0, 20)
+        self.setViewportMargins(0, 50, 0, 20)
         self.setWidget(self.scrollWidget)
         #self.scrollWidget.resize(1000, 800)
         self.setWidgetResizable(True)
@@ -322,6 +348,7 @@ class SettingInterface(ScrollArea):
         self.PersonalGroup.addSettingCard(self.ScaleCard)
         self.PersonalGroup.addSettingCard(self.DefaultPetCard)
         self.PersonalGroup.addSettingCard(self.languageCard)
+        self.PersonalGroup.addSettingCard(self.CustomNameCard)
         self.PersonalGroup.addSettingCard(self.themeColorCard)
 
         self.LLMGroup.addSettingCard(self.LLMEnableCard)
@@ -335,8 +362,8 @@ class SettingInterface(ScrollArea):
         self.aboutGroup.addSettingCard(self.devCard)
 
         # add setting card group to layout
-        self.expandLayout.setSpacing(28)
-        self.expandLayout.setContentsMargins(60, 10, 60, 0)
+        self.expandLayout.setSpacing(20)
+        self.expandLayout.setContentsMargins(40, 10, 40, 0)
 
         self.expandLayout.addWidget(self.ModeGroup)
         self.expandLayout.addWidget(self.InteractionGroup)
@@ -350,7 +377,7 @@ class SettingInterface(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
         self.settingLabel.setObjectName('settingLabel')
 
-        theme = 'light' #if isDarkTheme() else 'light'
+        theme = 'dark' if isDarkTheme() else 'light'
         with open(os.path.join(basedir, 'res/icons/system/qss/', theme, 'setting_interface.qss'), encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 
@@ -433,6 +460,25 @@ class SettingInterface(ScrollArea):
         setThemeColor(color_str)
         settings.themeColor = color_str
         settings.save_settings()
+
+    def _CustomNameChanged(self):
+        """处理自定义名称变更"""
+        custom_name = self.CustomNameEdit.text().strip()
+        settings.set_companion_nickname(settings.petname, custom_name)
+        self.custom_name_changed.emit()
+
+        InfoBar.success(
+            '',
+            self.tr('昵称已更新'),
+            duration=2000,
+            position=InfoBarPosition.BOTTOM,
+            parent=self.window()
+        )
+
+    def _update_custom_name(self):
+        """切换伴侣时更新昵称输入框"""
+        current_custom_name = settings.companion_nicknames.get(settings.petname, '')
+        self.CustomNameEdit.setText(current_custom_name)
 
     def _checkUpdate(self):
         local_version = settings.VERSION

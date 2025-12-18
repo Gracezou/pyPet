@@ -11,7 +11,7 @@
     <message>
         <location filename="../../DyberPet/DyberSettings/custom_utils.py" line="885"/>
         <source>Mini-Pet Info</source>
-        <translation>迷你宠物信息</translation>
+        <translation>迷你伴侣信息</translation>
     </message>
 </context>
 <context>
@@ -218,7 +218,7 @@ To find new characters, you can check our official collection by clicking the hy
 
 For most of time, App can import the character for you automatically. But in any case you want to add it manually:</source>
         <translation>角色管理面板显示你现在所拥有的所有角色。
-你可以在此处切换宠物，或者查看有关宠物和作者的详细信息。
+你可以在此处切换伴侣，或者查看有关伴侣和作者的详细信息。
 
 点击 添加角色, 你可以从选择的文件夹中导入新的角色。
 如果你在寻找新的角色, 你可以点击面板的超链接按钮查看我们收集到的所有角色。
@@ -289,7 +289,7 @@ For most of time, App can import the character for you automatically. But in any
     <message>
         <location filename="../../DyberPet/DyberSettings/DyberControlPanel.py" line="52"/>
         <source>Mini-Pets</source>
-        <translation>迷你宠物</translation>
+        <translation>迷你伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/DyberControlPanel.py" line="75"/>
@@ -323,12 +323,12 @@ For most of time, App can import the character for you automatically. But in any
     <message>
         <location filename="../../DyberPet/Notification.py" line="265"/>
         <source>Your pet is starving! (Favor point starts decreasing)</source>
-        <translation>宠物要饿死啦！(好感度开始下降)</translation>
+        <translation>伴侣要饿死啦！(好感度开始下降)</translation>
     </message>
     <message>
         <location filename="../../DyberPet/Notification.py" line="267"/>
         <source>Your pet is hungry now~ (Favor point stops increasing)</source>
-        <translation>宠物现在很饿哦~（好感度停止增加）</translation>
+        <translation>伴侣现在很饿哦~（好感度停止增加）</translation>
     </message>
     <message>
         <location filename="../../DyberPet/Notification.py" line="273"/>
@@ -754,17 +754,17 @@ For most of time, App can import the MOD for you automatically. But in any case 
     <message>
         <location filename="../../DyberPet/DyberSettings/GameSaveUI.py" line="76"/>
         <source>Please choose the pet, then choose the save folder</source>
-        <translation>请先选择宠物，再选择想要导入的文件夹</translation>
+        <translation>请先选择伴侣，再选择想要导入的文件夹</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/GameSaveUI.py" line="254"/>
         <source>All pets</source>
-        <translation>所有宠物</translation>
+        <translation>所有伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/GameSaveUI.py" line="79"/>
         <source>Select pet, then select folder</source>
-        <translation>选择宠物，然后选择文件夹</translation>
+        <translation>选择伴侣，然后选择文件夹</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/GameSaveUI.py" line="105"/>
@@ -1058,12 +1058,12 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="74"/>
         <source>Always-On-Top</source>
-        <translation>置顶宠物</translation>
+        <translation>置顶伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="74"/>
         <source>Pet will be displayed on top of the other Apps</source>
-        <translation>宠物将始终显示在其他应用程序的上方</translation>
+        <translation>伴侣将始终显示在其他应用程序的上方</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="86"/>
@@ -1073,7 +1073,7 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="86"/>
         <source>When mouse released, pet falls to the ground (on) / stays at the site (off)</source>
-        <translation>当鼠标释放时，宠物会掉落到地面(开) / 停留在原地(关)</translation>
+        <translation>当鼠标释放时，伴侣会掉落到地面(开) / 停留在原地(关)</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="84"/>
@@ -1098,7 +1098,7 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="101"/>
         <source>Pet falling down acceleration</source>
-        <translation>宠物掉落加速度</translation>
+        <translation>伴侣掉落加速度</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="112"/>
@@ -1153,22 +1153,22 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="137"/>
         <source>Pet Scale</source>
-        <translation>宠物大小</translation>
+        <translation>伴侣大小</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="137"/>
         <source>Adjust size of the pet</source>
-        <translation>调整宠物的大小</translation>
+        <translation>调整伴侣的大小</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="148"/>
         <source>Default Pet</source>
-        <translation>默认宠物</translation>
+        <translation>默认伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="148"/>
         <source>Pet to show everytime App starts</source>
-        <translation>应用启动时显示的宠物</translation>
+        <translation>应用启动时显示的伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="162"/>
@@ -1238,7 +1238,7 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="190"/>
         <source>If you want to develop your own pet/item/actions... Check here</source>
-        <translation>如果您想开发自己的宠物/物品/动作...请在这里查看</translation>
+        <translation>如果您想开发自己的伴侣/物品/动作...请在这里查看</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/BasicSettingUI.py" line="297"/>
@@ -1332,7 +1332,7 @@ Please load previous saved data to recover.</source>
     <message>
         <location filename="../../DyberPet/Accessory.py" line="1261"/>
         <source>Pet Scale</source>
-        <translation>宠物大小</translation>
+        <translation>伴侣大小</translation>
     </message>
     <message>
         <location filename="../../DyberPet/Accessory.py" line="1113"/>
@@ -1668,7 +1668,7 @@ Everytime you finish a 25min Pomodoro, you get coin rewarded</source>
     <message>
         <location filename="../../DyberPet/Dashboard/dashboard_widgets.py" line="1507"/>
         <source>Pet</source>
-        <translation>宠物</translation>
+        <translation>伴侣</translation>
     </message>
 </context>
 <context>
@@ -1763,7 +1763,7 @@ If there is any item in the first cell of the consumable item tab, this item wil
 共有3个标签页和金币栏：
     - 消耗品（食物等）
     - 收藏品（对话等）
-    - 角色的宠物
+    - 角色的伴侣
 （背包的容量无限）
 
 📌物品有不同的效果，如增加饱食度。其中一些还有Buff效果。
@@ -1837,7 +1837,7 @@ If there is any item in the first cell of the consumable item tab, this item wil
     <message>
         <location filename="../../DyberPet/Dashboard/shopUI.py" line="100"/>
         <source>Pet</source>
-        <translation>宠物</translation>
+        <translation>伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/Dashboard/shopUI.py" line="103"/>
@@ -1935,7 +1935,7 @@ From top to bottom, there are 3 widgets:
 
 ⏺ Buff 状态
     - 这个组件会显示角色目前拥有的 Buff
-    - 可以通过使用特定物品、或带上特定宠物，来获得 Buff 效果
+    - 可以通过使用特定物品、或带上特定伴侣，来获得 Buff 效果
 
 ⏺ 通知日志
     - 如果你不小心错过了一条消息，没关系，所有的通知都会记录在这里
@@ -2233,17 +2233,17 @@ Once done, give the design a name, and click 'Create' to complete</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="46"/>
         <source>Mini-Pet Management</source>
-        <translation>迷你宠物</translation>
+        <translation>迷你伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="53"/>
         <source>Add Mini-Pets</source>
-        <translation>添加迷你宠物</translation>
+        <translation>添加迷你伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="50"/>
         <source>Collected Mini-Pets</source>
-        <translation>迷你宠物合集</translation>
+        <translation>迷你伴侣合集</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="55"/>
@@ -2253,7 +2253,7 @@ Once done, give the design a name, and click 'Create' to complete</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="66"/>
         <source>Mini-Pets</source>
-        <translation>宠物列表</translation>
+        <translation>伴侣列表</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="165"/>
@@ -2266,7 +2266,7 @@ Once done, give the design a name, and click 'Create' to complete</source>
 Currently, you can Go To Folder, delete the pet's folder, and restart App.
 Sorry for the inconvenience.</source>
         <translation>删除功能尚未完成。
-目前，您可以前往宠物文件夹，并删除整个文件夹，重启程序。
+目前，您可以前往伴侣文件夹，并删除整个文件夹，重启程序。
 抱歉带来不便。</translation>
     </message>
     <message>
@@ -2277,27 +2277,27 @@ Sorry for the inconvenience.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="195"/>
         <source>Adding Mini-Pet</source>
-        <translation>添加迷你宠物</translation>
+        <translation>添加迷你伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="196"/>
         <source>You are about to import a Mini-Pet from a local file. Please be aware that it is from third-party sources. We are not responsible for any potential harm or issues that may arise from using this mini-pet. Only proceed if you trust the source.</source>
-        <translation>您即将从本地文件导入一个来自第三方的宠物。请注意，我们不对使用此宠物可能引起的任何潜在伤害或问题负责。如果您信任该来源，请继续。</translation>
+        <translation>您即将从本地文件导入一个来自第三方的伴侣。请注意，我们不对使用此伴侣可能引起的任何潜在伤害或问题负责。如果您信任该来源，请继续。</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="202"/>
         <source>Please select the pet folder</source>
-        <translation>请选择宠物文件夹</translation>
+        <translation>请选择伴侣文件夹</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="226"/>
         <source>There is already a Mini-Pet with the same name added.</source>
-        <translation>已经存在相同文件夹名字的迷你宠物</translation>
+        <translation>已经存在相同文件夹名字的迷你伴侣</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="268"/>
         <source>Adding Mini-Pet completed! You need to restart the App to have the Mini-Pet enabled.</source>
-        <translation>迷你宠物添加完成！请重启应用以加载新的宠物。</translation>
+        <translation>迷你伴侣添加完成！请重启应用以加载新的伴侣。</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="278"/>
@@ -2362,7 +2362,7 @@ Sorry for the inconvenience.</source>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="358"/>
         <source>Mini-Pet Panel Guide</source>
-        <translation>迷你宠物指南</translation>
+        <translation>迷你伴侣指南</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="358"/>
@@ -2376,14 +2376,14 @@ By clicking Add Mini-Pet, you can import a new pet from the selected folder.
 To find new pets, you can check our official collection by clicking the hyperlink button.
 
 For most of time, App can import the pet for you automatically. But in any case you want to add it manually:</source>
-        <translation>迷你宠物面板显示你现在所拥有的所有迷你宠物。
-你可以在此处查看有关迷你宠物和作者的详细信息。
+        <translation>迷你伴侣面板显示你现在所拥有的所有迷你伴侣。
+你可以在此处查看有关迷你伴侣和作者的详细信息。
 
-迷你宠物是桌宠角色的宠物 (套娃)。他们以物品形式存在于背包中, 可以被购买、召唤。
-一些迷你宠物会用自己的方式时刻跟随着桌宠角色。
+迷你伴侣是桌宠角色的伴侣 (套娃)。他们以物品形式存在于背包中, 可以被购买、召唤。
+一些迷你伴侣会用自己的方式时刻跟随着桌宠角色。
 
-点击 添加迷你宠物, 你可以从选择的文件夹中导入新的迷你宠物。
-如果你在寻找新的宠物, 你可以点击面板的超链接按钮查看我们收集到的所有宠物。
+点击 添加迷你伴侣, 你可以从选择的文件夹中导入新的迷你伴侣。
+如果你在寻找新的伴侣, 你可以点击面板的超链接按钮查看我们收集到的所有伴侣。
 
 绝大多数情况, 应用可以帮你自动导入。但如果你想要手动导入：</translation>
     </message>
@@ -2394,11 +2394,11 @@ For most of time, App can import the pet for you automatically. But in any case 
 3. Close App and open again;
 4. You will see the Mini-Pet show up here;
 5. If App crushed when calling the Mini-Pet, it means the source file is problematic, please contact the author for help.</source>
-        <translation>1. 准备/下载 包含所有文件的宠物文件夹；
+        <translation>1. 准备/下载 包含所有文件的伴侣文件夹；
 2. 将文件夹复制到应用程序资源文件夹（您可以点击“前往文件夹”按钮）；
 3. 重启应用程序；
-4. 您会在此处看到该宠物；
-5. 如果在召唤该宠物时应用程序崩溃，表示文件有问题，请联系作者以获取帮助。</translation>
+4. 您会在此处看到该伴侣；
+5. 如果在召唤该伴侣时应用程序崩溃，表示文件有问题，请联系作者以获取帮助。</translation>
     </message>
     <message>
         <location filename="../../DyberPet/DyberSettings/PetCardUI.py" line="350"/>

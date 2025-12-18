@@ -42,6 +42,7 @@ import DyberPet.settings as settings
 from DyberPet.DyberSettings.custom_utils import AvatarImage
 from DyberPet.custom_widgets import RoundBarBase, LevelBadge
 from DyberPet.utils import MaskPhrase, TimeConverter, replace_duplicates_in_list
+from DyberPet.ui_colors import ThemeColors
 
 from sys import platform
 basedir = settings.BASEDIR
@@ -284,7 +285,7 @@ class StatusCard(SimpleCardWidget):
         # Pet Name -----------
         hbox_title = QHBoxLayout()
         hbox_title.setContentsMargins(0, 0, 0, 0)
-        self.nameLabel = CaptionLabel(self.petname)
+        self.nameLabel = CaptionLabel(settings.get_companion_display_name(self.petname))
         setFont(self.nameLabel, 18, QFont.DemiBold)
         self.nameLabel.adjustSize()
         self.nameLabel.setFixedHeight(25)
@@ -366,7 +367,10 @@ class StatusCard(SimpleCardWidget):
         self.fvStatus._updateFV(fv, fv_lvl)
         if fv_lvl != self.lvl_badge.level:
             self.lvl_badge.set_level(fv_lvl)
-        
+
+    def update_pet_name(self):
+        """更新伴侣名称显示"""
+        self.nameLabel.setText(settings.get_companion_display_name(self.petname))
 
 
 class HPWidget(QWidget):
@@ -648,7 +652,7 @@ class BuffWidget(QLabel):
             text_printer = QPainter(self)
             text_printer.setFont(self.font)
 
-            text_pen = QPen(QColor("#333333"))
+            text_pen = QPen(ThemeColors.text_primary())
             text_printer.setPen(text_pen)
 
             text_printer.drawText(QRect(0, 0, int(self.size_wh-2), int(self.size_wh-2)), 
@@ -903,7 +907,7 @@ class PetItemWidget(QLabel):
             text_printer = QPainter(self)
             text_printer.setFont(self.font)
 
-            text_pen = QPen(QColor("#333333"))
+            text_pen = QPen(ThemeColors.text_primary())
             text_printer.setPen(text_pen)
 
             text_printer.drawText(QRect(0, 0, int(self.size_wh-3), int(self.size_wh-3)), 
@@ -1630,7 +1634,7 @@ class ShopItemWidget(SimpleCardWidget):
             fontCol = QColor("#ff333d")
         elif self.locked_reason == 'PETLIMIT':
             self.info_text = f"{self.tr('Other Chars Only')}"
-            fontCol = QColor("#636363")
+            fontCol = ThemeColors.text_secondary()
 
         self.infoLabel = CaptionLabel(self.info_text)
         setFont(self.infoLabel, 14, QFont.Normal)
@@ -1739,7 +1743,7 @@ class ShopItemWidget(SimpleCardWidget):
             fontCol = QColor("#ff333d")
         elif self.locked_reason == 'PETLIMIT':
             self.info_text = f"{self.tr('Other Chars Only')}"
-            fontCol = QColor("#636363")
+            fontCol = ThemeColors.text_secondary()
 
         self.infoLabel.setText(self.info_text)
 
@@ -2171,7 +2175,7 @@ class AnimationGroup(QWidget):
         self.col_label_1 = StrongBodyLabel()
         self.col_label_1.setText(self.tr("Playlist"))
         setFont(self.col_label_1, 15, QFont.Normal)
-        self.col_label_1.setTextColor(QColor(140, 140, 140))
+        self.col_label_1.setTextColor(ThemeColors.text_secondary())
         self.horizontalLayout_1.addWidget(self.col_label_1)
         spacerItem1 = QSpacerItem(20, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.horizontalLayout_1.addItem(spacerItem1)
@@ -2371,7 +2375,7 @@ class ActionCard(SimpleCardWidget):
         # Action name
         self.actLabel.setText(self.act_name)
         if not self.unlocked:
-            self.actLabel.setTextColor(QColor(140, 140, 140))
+            self.actLabel.setTextColor(ThemeColors.text_secondary())
             self.playBtn.setEnabled(False)
         else:
             self.actLabel.setTextColor(QColor(0, 0, 0))
@@ -2380,7 +2384,7 @@ class ActionCard(SimpleCardWidget):
         # Comments
         comment = self._get_comment()
         self.commentLabel.setText(comment)
-        self.commentLabel.setTextColor(QColor(140, 140, 140))
+        self.commentLabel.setTextColor(ThemeColors.text_secondary())
 
 
     
@@ -3431,7 +3435,7 @@ class TaskCard(SimpleCardWidget):
         self.checkBox.setChecked(True)
         self.checkBox.setEnabled(False)
 
-        self.taskLabel.setTextColor(QColor(140, 140, 140))
+        self.taskLabel.setTextColor(ThemeColors.text_secondary())
         font = self.taskLabel.font()
         font.setStrikeOut(True)
         self.taskLabel.setFont(font)

@@ -60,7 +60,7 @@ LLM_CONFIG_DEFAULTS = {
     "retry_delay": 1,
     "temperature": 0.8,
     "max_tokens": 600,
-    "default_system_prompt": "你是一个智能的桌面宠物，需要根据用户交互和系统事件做出简短友好的回应。"
+    "default_system_prompt": "你是一个智能的桌面伴侣，需要根据用户交互和系统事件做出简短友好的回应。"
 }
 
 # 请求管理器配置

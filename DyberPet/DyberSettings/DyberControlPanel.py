@@ -9,10 +9,7 @@ from qfluentwidgets import (NavigationItemPosition, MessageBox, setTheme, Theme,
 from qfluentwidgets import FluentIcon as FIF
 
 from .BasicSettingUI import SettingInterface
-from .GameSaveUI import SaveInterface
-from .CharCardUI import CharInterface
 from .ItemCardUI import ItemInterface
-from .PetCardUI import PetInterface
 from sys import platform
 import DyberPet.settings as settings
 basedir = settings.BASEDIR
@@ -27,10 +24,7 @@ class ControlMainWindow(FluentWindow):
 
         # create sub interface
         self.settingInterface = SettingInterface(self)
-        self.gamesaveInterface = SaveInterface(sizeHintDyber=(minWidth, minHeight), parent=self)
-        self.charCardInterface = CharInterface(sizeHintDyber=(minWidth, minHeight), parent=self)
         self.itemCardInterface = ItemInterface(sizeHintDyber=(minWidth, minHeight), parent=self)
-        self.petCardInterface = PetInterface(sizeHintDyber=(minWidth, minHeight), parent=self)
 
         self.initNavigation()
         self.setMinimumSize(minWidth, minHeight)
@@ -39,19 +33,9 @@ class ControlMainWindow(FluentWindow):
     def initNavigation(self):
         # add sub interface
         self.addSubInterface(self.settingInterface, FIF.SETTING, self.tr('Settings'))
-        self.addSubInterface(self.gamesaveInterface,
-                             FIF.SAVE, #QIcon(os.path.join(module_path, 'resource/saveIcon.svg')), 
-                             self.tr('Game Save'))
-        self.addSubInterface(self.charCardInterface,
-                             QIcon(os.path.join(basedir, "res/icons/system/character.svg")),
-                             self.tr('Characters'))
         self.addSubInterface(self.itemCardInterface,
                              QIcon(os.path.join(basedir, "res/icons/system/itemMod.svg")),
                              self.tr('Item MOD'))
-        self.addSubInterface(self.petCardInterface,
-                             QIcon(os.path.join(basedir, "res/icons/system/minipet.svg")),
-                             self.tr('Mini-Pets'))
-
 
         self.navigationInterface.setExpandWidth(200)
 

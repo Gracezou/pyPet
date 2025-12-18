@@ -325,7 +325,7 @@ class SettingUI(QWidget):
         self.slider_scale.setValue(settings.tunable_scale*100)
         self.slider_scale.setTickInterval(5)
         self.slider_scale.setTickPosition(QSlider.TicksAbove)
-        self.scale_label = QLabel("宠物缩放: ") # %s"%(self.slider_scale.value()/100))
+        self.scale_label = QLabel("伴侣缩放: ") # %s"%(self.slider_scale.value()/100))
 
         self.scale_text = QLineEdit()
         qfltv = QDoubleValidator()
@@ -421,7 +421,7 @@ class SettingUI(QWidget):
         vbox_s4.addWidget(self.volume_label)
         vbox_s4.addWidget(self.slider_volume)
 
-        self.checkA = QCheckBox("置顶宠物", self)
+        self.checkA = QCheckBox("置顶伴侣", self)
         if settings.on_top_hint:
             self.checkA.setChecked(True)
         self.checkA.stateChanged.connect(self.checks_update)
@@ -508,7 +508,7 @@ class SettingUI(QWidget):
         else:
             settings.tunable_scale = self.slider_scale.value()/100
             settings.save_settings()
-            #self.scale_label.setText("宠物缩放: %s"%(self.slider_scale.value()/100))
+            #self.scale_label.setText("伴侣缩放: %s"%(self.slider_scale.value()/100))
             self.scale_text.setText(str(settings.tunable_scale))
             self.scale_changed.emit()
 
@@ -1571,7 +1571,7 @@ class Inventory(QWidget):
         hbox.addStretch()
 
         hbox_0 = QHBoxLayout()
-        self.title = QLabel(self.tr("宠物背包"))
+        self.title = QLabel(self.tr("伴侣背包"))
         self.title.setStyleSheet(IvenTitle)
         icon = QLabel()
         icon.setStyleSheet(IvenTitle)
@@ -1741,7 +1741,7 @@ class Inventory(QWidget):
 
         item_name_selected = self.cells_dict[self.selected_cell].item_name
 
-        # 判断是否为个别宠物的专属物品
+        # 判断是否为个别伴侣的专属物品
         if len(self.items_data.item_dict[item_name_selected]['pet_limit']) != 0:
             pet_list = self.items_data.item_dict[item_name_selected]['pet_limit']
             if settings.petname not in pet_list:

@@ -62,7 +62,7 @@ class LLMRequestManager(QObject):
         # 获取当前时间戳
         current_time = time.time()
 
-        # 获取宠物状态快照
+        # 获取伴侣状态快照
         pet_status = self.get_pet_status()
 
         # 清理context中可能存在的重复字段
@@ -394,7 +394,7 @@ class LLMRequestManager(QObject):
         """
         try:
             message = ""
-            # 从标准事件数据中获取宠物状态（使用最新的事件）
+            # 从标准事件数据中获取伴侣状态（使用最新的事件）
             pet_status = None
             latest_timestamp = 0
             
@@ -408,7 +408,7 @@ class LLMRequestManager(QObject):
                             pet_status = event["pet_status"]
             # 如果事件中没有状态信息，则获取当前状态
             if not pet_status:
-                print("使用当前宠物状态")
+                print("使用当前伴侣状态")
                 pet_status = self.get_pet_status()
             # 添加事件信息
             for event_type, events in events_by_type.items():
@@ -447,7 +447,7 @@ class LLMRequestManager(QObject):
             message += "\n"
             
             # 构建状态消息
-            status_message = f"[宠物状态] 名称:{pet_status.get('pet_name', settings.petname)}, "
+            status_message = f"[伴侣状态] 名称:{pet_status.get('pet_name', settings.petname)}, "
             status_message += f"饱食度:{pet_status.get('hp', 'No Data')}, "
             status_message += f"好感度:{pet_status.get('fv', 'No Data')}, "
             status_message += f"好感度等级:{pet_status.get('fv_lvl', 'No Data')}, "

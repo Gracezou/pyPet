@@ -39,7 +39,7 @@ def rename_pet_action(pet_name: str, start_idx: int) -> None:
     """
     根据宠物名, 重命名宠物文件夹下的图片, 从0到n
     :param start_idx: 开始坐标
-    :param pet_name: 宠物名称
+    :param pet_name: 伴侣名称
     :return:
     """
     path = '../res/role/{}/action/'.format(pet_name)
@@ -51,7 +51,7 @@ def rename_pet_action(pet_name: str, start_idx: int) -> None:
 def remove_pet_action(pet_name: str) -> None:
     """
     删除宠物动作
-    :param pet_name: 宠物名称
+    :param pet_name: 伴侣名称
     :return:
     """
     path = '../res/role/{}/action/'.format(pet_name)

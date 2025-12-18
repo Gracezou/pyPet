@@ -34,7 +34,7 @@ LVL_BAR = [20] + [120]*200
 
 class PetConfig:
     """
-    宠物配置
+    伴侣配置
     """
 
     def __init__(self):
@@ -739,7 +739,7 @@ class ActData:
 
 class PetData:
     """
-    宠物数据创建、读取、存储
+    伴侣数据创建、读取、存储
     """
 
     def __init__(self, petsList):

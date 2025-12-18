@@ -182,7 +182,7 @@ class backpackInterface(ScrollArea):
         self.scrollWidget.setObjectName('scrollWidget')
         self.panelLabel.setObjectName('panelLabel')
 
-        theme = 'light' #if isDarkTheme() else 'light'
+        theme = 'dark' if isDarkTheme() else 'light'
         with open(os.path.join(basedir, 'res/icons/Dashboard/qss/', theme, 'status_interface.qss'), encoding='utf-8') as f:
             self.setStyleSheet(f.read())
 

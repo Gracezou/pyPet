@@ -99,7 +99,7 @@ LLM_CONFIG_DEFAULT = {
     "max_retries": 3,
     "retry_delay": 1,
     "temperature": 0.8,
-    "default_system_prompt": "你是一个智能的桌面宠物，需要根据用户交互和系统事件做出简短友好的回应。"
+    "default_system_prompt": "你是一个智能的桌面伴侣，需要根据用户交互和系统事件做出简短友好的回应。"
 }
 
 # TODO: add translation of all model names in 'others'
@@ -224,6 +224,10 @@ def init():
     items_data = None
     required_item = None
 
+    # Companion nicknames dict ==========================================
+    global companion_nicknames
+    companion_nicknames = {}
+
 
 
 '''
@@ -241,7 +245,7 @@ def init_settings():
 
     global gravity, fixdragspeedx, fixdragspeedy, tunable_scale, scale_dict, volume, \
            language_code, on_top_hint, default_pet, defaultAct, themeColor, minipet_scale, \
-           toaster_on, usertag_dict, auto_lock, bubble_on, llm_config
+           toaster_on, usertag_dict, auto_lock, bubble_on, llm_config, companion_nicknames
 
     # check json file integrity
     try:
@@ -344,6 +348,14 @@ def init_settings():
             llm_config.pop(key)
         #=====================================================
 
+        # v0.7.1 Custom pet name
+        companion_nicknames_tmp = data_params.get('companion_nicknames', {})
+        companion_nicknames = {}
+        for pet in pets:
+            custom_name = companion_nicknames_tmp.get(pet, '')
+            companion_nicknames[pet] = custom_name
+        #=====================================================
+
     else:
         fixdragspeedx, fixdragspeedy = 1.0, 1.0
         gravity = 0.1
@@ -365,13 +377,14 @@ def init_settings():
         usertag_dict = {}
         auto_lock = False
         llm_config = LLM_CONFIG_DEFAULT.copy()
+        companion_nicknames = {}
     check_locale()
     save_settings()
 
 def save_settings():
     global file_path, set_fall, gravity, fixdragspeedx, fixdragspeedy, scale_dict, volume, \
            language_code, on_top_hint, default_pet, defaultAct, themeColor, minipet_scale, \
-           toaster_on, usertag_dict, auto_lock, bubble_on, llm_config
+           toaster_on, usertag_dict, auto_lock, bubble_on, llm_config, companion_nicknames
 
     data_js = {'gravity':gravity,
                'set_fall': set_fall,
@@ -389,7 +402,8 @@ def save_settings():
                'language_code':language_code,
                'themeColor':themeColor,
                'auto_lock':auto_lock,
-               'llm_config':llm_config
+               'llm_config':llm_config,
+               'companion_nicknames':companion_nicknames
                }
 
     with open(file_path, 'w', encoding='utf-8') as f:
@@ -452,4 +466,34 @@ def check_dict_datatype(raw_dict:dict, dtype, default_value):
     dict: A new dictionary with corrected datatypes.
     """
     return {k: (v if isinstance(v, dtype) else default_value) for k, v in raw_dict.items()}
+
+def get_companion_display_name(companion_name):
+    """
+    获取伴侣的显示名称（昵称优先，否则返回标准名）
+
+    Args:
+        companion_name: 伴侣标准名称
+
+    Returns:
+        显示名称（昵称或标准名称）
+    """
+    global companion_nicknames
+    nickname = companion_nicknames.get(companion_name, '')
+    return nickname if nickname.strip() else companion_name
+
+def set_companion_nickname(companion_name, nickname):
+    """
+    设置伴侣昵称
+
+    Args:
+        companion_name: 伴侣标准名称
+        nickname: 昵称（空字符串表示取消自定义）
+    """
+    global companion_nicknames
+    if nickname and nickname.strip():
+        companion_nicknames[companion_name] = nickname.strip()[:20]  # 限制20字符
+    else:
+        # 空昵称则删除自定义
+        companion_nicknames.pop(companion_name, None)
+    save_settings()
 

@@ -426,7 +426,7 @@ class ChatWindow(FluentWindow):
         """
         self.setWindowIcon(QIcon(os.path.join(basedir, "res/icons/chatai.png")))
         self.setWindowTitle(self.tr('Dashboard'))
-        self.setWindowTitle(self.tr('与宠物对话'))
+        self.setWindowTitle(self.tr('与伴侣对话'))
 
         self.navigationInterface.setExpandWidth(150)
         self.navigationInterface.setMinimumWidth(0)
